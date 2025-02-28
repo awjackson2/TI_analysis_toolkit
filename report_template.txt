@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TI Field Analysis Report</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        h1, h2 {{ color: #2c3e50; }}
+        table {{ border-collapse: collapse; width: 100%; margin-bottom: 20px; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+        th {{ background-color: #f2f2f2; }}
+        tr:nth-child(even) {{ background-color: #f9f9f9; }}
+        img {{ max-width: 100%; height: auto; margin: 20px 0; }}
+        .container {{ max-width: 1200px; margin: 0 auto; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TI Field Analysis Report</h1>
+        <p><strong>Field Data:</strong> {field_data}</p>
+        <p><strong>Atlas:</strong> {atlas}</p>
+        <p><strong>Analysis Date:</strong> {analysis_date}</p>
+        
+        <h2>Summary Statistics</h2>
+        <table>
+            <tr>
+                <th>Metric</th>
+                <th>Value</th>
+            </tr>
+            <tr>
+                <td>Total Field Mean</td>
+                <td>{total_field_mean}</td>
+            </tr>
+            <tr>
+                <td>Total Field Max</td>
+                <td>{total_field_max}</td>
+            </tr>
+            <tr>
+                <td>Number of Analyzed Regions</td>
+                <td>{num_regions}</td>
+            </tr>
+            <tr>
+                <td>Region with Highest Mean</td>
+                <td>{highest_mean_region}</td>
+            </tr>
+            <tr>
+                <td>Region with Highest Max</td>
+                <td>{highest_max_region}</td>
+            </tr>
+        </table>
+        
+        <h2>Top 10 Regions by Mean Field Value</h2>
+        <table>
+            <tr>
+                <th>Region ID</th>
+                <th>Region Name</th>
+                <th>Mean Value</th>
+                <th>Max Value</th>
+                <th>Volume (mm³)</th>
+            </tr>
+            {top_regions_rows}
+        </table>
+        
+        {visualizations_section}
+    </div>
+</body>
+</html>
