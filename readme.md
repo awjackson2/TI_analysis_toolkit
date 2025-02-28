@@ -140,29 +140,3 @@ results_df = analyzer.analyze_by_region()
 visu.create_bar_chart(analyzer)
 visu.generate_report(analyzer)
 ```
-
-## Extending the Toolkit
-
-- Add new analysis methods by extending `TIFieldAnalyzer`
-- Create custom visualizations in `ti_field_visualization.py`
-- Develop new command-line tools based on existing scripts
-
-## Troubleshooting
-
-- Ensure input files are in compatible neuroimaging formats
-- Check file paths and permissions
-- Verify input data dimensions and orientation
-- For large files, consider downsampling or using memory-efficient processing
-
-## Citing This Work
-
-If you use this toolkit in your research, please cite:
-[Your Publication Details Here]
-
-## License
-
-[Specify License, e.g., MIT, GPL]
-
-## Contributing
-
-Contributions are welcome! Please read our contributing guidelines and submit pull requests to the repository.
