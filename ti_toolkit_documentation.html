@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TI Analysis Toolkit Documentation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3, h4 {
+            color: #2c3e50;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        h1 {
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 0.3em;
+        }
+        h2 {
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 0.3em;
+        }
+        pre {
+            background-color: #f6f8fa;
+            border-radius: 3px;
+            padding: 16px;
+            overflow: auto;
+            line-height: 1.45;
+        }
+        code {
+            background-color: rgba(27, 31, 35, 0.05);
+            border-radius: 3px;
+            font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 85%;
+            padding: 0.2em 0.4em;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .method {
+            margin-bottom: 2em;
+            padding-bottom: 1em;
+            border-bottom: 1px dashed #eaecef;
+        }
+        .param {
+            margin-bottom: 0.5em;
+        }
+        .param-name {
+            font-weight: bold;
+            margin-right: 0.5em;
+        }
+        .param-type {
+            color: #6a737d;
+            font-style: italic;
+        }
+        .returns {
+            margin-top: 1em;
+            margin-bottom: 1em;
+        }
+        .returns-type {
+            color: #6a737d;
+            font-style: italic;
+        }
+        .toc {
+            background-color: #f6f8fa;
+            padding: 1em;
+            border-radius: 5px;
+            margin-bottom: 2em;
+        }
+        .toc ul {
+            padding-left: 1.5em;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .example {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        /* Sticky TOC */
+        .sticky-toc {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 250px;
+            max-height: 80vh;
+            overflow-y: auto;
+            background-color: #f6f8fa;
+            padding: 1em;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        .main-content {
+            margin-left: 280px;
+        }
+        @media (max-width: 1200px) {
+            .sticky-toc {
+                position: static;
+                width: 100%;
+                margin-bottom: 2em;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sticky-toc">
+        <h2>Table of Contents</h2>
+        <ul>
+            <li><a href="#introduction">Introduction</a></li>
+            <li>
+                <a href="#core-module">Core Module (ti_field_core.py)</a>
+                <ul>
+                    <li><a href="#TIFieldAnalyzer">TIFieldAnalyzer Class</a></li>
+                    <li><a href="#init">__init__</a></li>
+                    <li><a href="#align-atlas">align_atlas_to_field</a></li>
+                    <li><a href="#load-region-info">load_region_info</a></li>
+                    <li><a href="#process-region-line">process_region_line</a></li>
+                    <li><a href="#analyze-by-region">analyze_by_region</a></li>
+                    <li><a href="#save-results">save_results</a></li>
+                    <li><a href="#analyze-spherical-roi">analyze_spherical_roi</a></li>
+                    <li><a href="#ras-to-voxel">ras_to_voxel</a></li>
+                </ul>
+            </li>
+            <li>
+                <a href="#visualization-module">Visualization Module (ti_field_visualization.py)</a>
+                <ul>
+                    <li><a href="#create-bar-chart">create_bar_chart</a></li>
+                    <li><a href="#create-slices-visualization">create_slices_visualization</a></li>
+                    <li><a href="#generate-histogram">generate_histogram</a></li>
+                    <li><a href="#generate-report">generate_report</a></li>
+                </ul>
+            </li>
+            <li>
+                <a href="#analysis-scripts">Analysis Scripts</a>
+                <ul>
+                    <li><a href="#voxel-analysis">voxel_analysis.py</a></li>
+                    <li><a href="#sphere-analysis">sphere_analysis.py</a></li>
+                    <li><a href="#cortex-analysis">cortex_analysis.py</a></li>
+                </ul>
+            </li>
+            <li>
+                <a href="#comparison-module">Comparison Module (compare_field_scans.py)</a>
+                <ul>
+                    <li><a href="#compare-field-scans">compare_field_scans</a></li>
+                    <li><a href="#create-comparison-visualizations">create_comparison_visualizations</a></li>
+                    <li><a href="#generate-comparison-report">generate_comparison_report</a></li>
+                </ul>
+            </li>
+            <li><a href="#usage-examples">Usage Examples</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <h1>TI Analysis Toolkit Documentation</h1>
+        
+        <section id="introduction">
+            <h2>Introduction</h2>
+            <p>
+                The TI (Temporal Interference) Analysis Toolkit is a comprehensive Python toolkit for advanced analysis of Temporal Interference electric fields in neuroimaging. It provides robust capabilities for quantitative assessment across voxel and mesh spaces.
+            </p>
+            <p>
+                This toolkit includes multiple modules for different types of analyses:
+            </p>
+            <ul>
+                <li>Core analysis functionality (<code>ti_field_core.py</code>)</li>
+                <li>Visualization tools (<code>ti_field_visualization.py</code>)</li>
+                <li>Voxel-based analysis (<code>voxel_analysis.py</code>)</li>
+                <li>Spherical ROI analysis (<code>sphere_analysis.py</code>)</li>
+                <li>Cortical region analysis (<code>cortex_analysis.py</code>)</li>
+                <li>Field comparison tool (<code>compare_field_scans.py</code>)</li>
+            </ul>
+        </section>
+
+        <section id="core-module">
+            <h2>Core Module (ti_field_core.py)</h2>
+            
+            <div id="TIFieldAnalyzer" class="method">
+                <h3>TIFieldAnalyzer Class</h3>
+                <p>The main class for TI field analysis, providing methods for analyzing field data in relation to brain atlases and specific regions of interest.</p>
+            </div>
+
+            <div id="init" class="method">
+                <h3>__init__(field_nifti, atlas_nifti, hcp_labels_file, output_dir, t1_mni=None)</h3>
+                <p>Initialize the analyzer with input files and parameters.</p>
+                
+                <h4>Parameters:</h4>
+                <div class="param">
+                    <span class="param-name">field_nifti:</span>
+                    <span class="param-type">str</span>
+                    <p>Path to NIfTI file containing field values</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">atlas_nifti:</span>
+                    <span class="param-type">str</span>
+                    <p>Path to NIfTI file containing atlas parcellation</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">hcp_labels_file:</span>
+                    <span class="param-type">str</span>
+                    <p>Path to text file with HCP region labels</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">output_dir:</span>
+                    <span class="param-type">str</span>
+                    <p>Directory to save output files</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">t1_mni:</span>
+                    <span class="param-type">str, optional</span>
+                    <p>Path to T1 MNI reference image for visualization</p>
+                </div>
+                
+                <div class="example">
+                    <h4>Example:</h4>
+                    <pre><code>
+# Initialize analyzer with required files
+analyzer = TIFieldAnalyzer(
+    field_nifti='TI_max.nii.gz',
+    atlas_nifti='HCP_parcellation.nii.gz',
+    hcp_labels_file='HCP.txt',
+    output_dir='analysis_results',
+    t1_mni='T1_mni.nii.gz'
+)
+                    </code></pre>
+                </div>
+            </div>
+
+            <div id="align-atlas" class="method">
+                <h3>align_atlas_to_field()</h3>
+                <p>Align atlas to field space without resizing. This method ensures the atlas data is aligned with the field data for proper analysis.</p>
+                
+                <div class="returns">
+                    <h4>Returns:</h4>
+                    <span class="returns-type">numpy.ndarray</span>
+                    <p>The aligned atlas data</p>
+                </div>
+                
+                <p>This method handles cases where the atlas and field data have different dimensions by centering the smaller one within the larger space or cropping the larger one to fit the smaller space.</p>
+            </div>
+
+            <div id="load-region-info" class="method">
+                <h3>load_region_info()</h3>
+                <p>Load region labels and colors from the HCP_labels file. This method populates the internal region_info dictionary.</p>
+                
+                <p>The method attempts to read the labels file with multiple encodings (utf-8, latin-1, cp1252) to handle different file formats. It also tries different delimiters (tab, space, comma) to parse the region information.</p>
+            </div>
+
+            <div id="process-region-line" class="method">
+                <h3>process_region_line(line)</h3>
+                <p>Process a single line from the HCP labels file to extract region ID, name, and color information.</p>
+                
+                <h4>Parameters:</h4>
+                <div class="param">
+                    <span class="param-name">line:</span>
+                    <span class="param-type">str</span>
+                    <p>A line from the HCP labels file</p>
+                </div>
+                
+                <p>This method attempts to parse a line from the labels file using different delimiters and extracts the region ID, name, and RGB color values if available.</p>
+            </div>
+
+            <div id="analyze-by-region" class="method">
+                <h3>analyze_by_region()</h3>
+                <p>Calculate statistics for each atlas region. This method identifies unique regions in the atlas and computes field statistics for each region.</p>
+                
+                <div class="returns">
+                    <h4>Returns:</h4>
+                    <span class="returns-type">pandas.DataFrame</span>
+                    <p>DataFrame containing statistics for each region</p>
+                </div>
+                
+                <p>The returned DataFrame includes columns for:</p>
+                <ul>
+                    <li>RegionID: Numerical identifier for the region</li>
+                    <li>RegionName: Name of the region</li>
+                    <li>MeanValue: Mean field value in the region</li>
+                    <li>MaxValue: Maximum field value in the region</li>
+                    <li>MinValue: Minimum field value in the region</li>
+                    <li>MedianValue: Median field value in the region</li>
+                    <li>StdValue: Standard deviation of field values in the region</li>
+                    <li>VoxelCount: Number of voxels in the region</li>
+                    <li>Volume_mm3: Volume of the region in cubic millimeters</li>
+                    <li>Color: RGB color tuple for visualization</li>
+                </ul>
+                
+                <div class="example">
+                    <h4>Example:</h4>
+                    <pre><code>
+# Run region-based analysis
+results_df = analyzer.analyze_by_region()
+
+# Print top 5 regions by mean field value
+print(results_df.head(5))
+                    </code></pre>
+                </div>
+            </div>
+
+            <div id="save-results" class="method">
+                <h3>save_results()</h3>
+                <p>Save analysis results to a CSV file.</p>
+                
+                <div class="returns">
+                    <h4>Returns:</h4>
+                    <span class="returns-type">str</span>
+                    <p>Path to the saved CSV file</p>
+                </div>
+                
+                <p>This method saves the results_df DataFrame to a CSV file named 'region_stats.csv' in the specified output directory.</p>
+                
+                <div class="example">
+                    <h4>Example:</h4>
+                    <pre><code>
+# Save analysis results to CSV
+csv_path = analyzer.save_results()
+print(f"Results saved to {csv_path}")
+                    </code></pre>
+                </div>
+            </div>
+
+            <div id="analyze-spherical-roi" class="method">
+                <h3>analyze_spherical_roi(center_coords, radius_mm, is_ras=True)</h3>
+                <p>Analyze field within a spherical region of interest (ROI).</p>
+                
+                <h4>Parameters:</h4>
+                <div class="param">
+                    <span class="param-name">center_coords:</span>
+                    <span class="param-type">tuple</span>
+                    <p>(x, y, z) coordinates of sphere center</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">radius_mm:</span>
+                    <span class="param-type">float</span>
+                    <p>Radius of sphere in millimeters</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">is_ras:</span>
+                    <span class="param-type">bool, optional</span>
+                    <p>If True, center_coords are in RAS coordinates and need to be converted. If False, center_coords are already in voxel coordinates.</p>
+                </div>
+                
+                <div class="returns">
+                    <h4>Returns:</h4>
+                    <span class="returns-type">dict</span>
+                    <p>Dictionary with ROI statistics</p>
+                </div>
+                
+                <p>The returned dictionary includes:</p>
+                <ul>
+                    <li>CenterCoords_RAS: Coordinates in RAS space</li>
+                    <li>CenterCoords_Voxel: Coordinates in voxel space</li>
+                    <li>RadiusMM: Radius in millimeters</li>
+                    <li>MeanValue: Mean field value in the ROI</li>
+                    <li>MaxValue: Maximum field value in the ROI</li>
+                    <li>MinValue: Minimum field value in the ROI</li>
+                    <li>MedianValue: Median field value in the ROI</li>
+                    <li>StdValue: Standard deviation of field values in the ROI</li>
+                    <li>VoxelCount: Number of voxels in the ROI</li>
+                    <li>Volume_mm3: Volume of the ROI in cubic millimeters</li>
+                </ul>
+                
+                <p>This method also saves a NIfTI file with the spherical mask for visualization.</p>
+                
+                <div class="example">
+                    <h4>Example:</h4>
+                    <pre><code>
+# Analyze a spherical ROI centered at (80, 90, 75) with radius 5mm
+roi_stats = analyzer.analyze_spherical_roi((80, 90, 75), 5.0)
+print(f"Mean field value in ROI: {roi_stats['MeanValue']}")
+                    </code></pre>
+                </div>
+            </div>
+
+            <div id="ras-to-voxel" class="method">
+                <h3>ras_to_voxel(ras_coords)</h3>
+                <p>Convert RAS (Right-Anterior-Superior) coordinates to voxel coordinates.</p>
+                
+                <h4>Parameters:</h4>
+                <div class="param">
+                    <span class="param-name">ras_coords:</span>
+                    <span class="param-type">tuple or list</span>
+                    <p>(x, y, z) coordinates in RAS space</p>
+                </div>
+                
+                <div class="returns">
+                    <h4>Returns:</h4>
+                    <span class="returns-type">tuple</span>
+                    <p>(x, y, z) coordinates in voxel space</p>
+                </div>
+                
+                <p>This method converts coordinates from the RAS coordinate system to voxel coordinates using the affine matrix from the field image.</p>
+                
+                <div class="example">
+                    <h4>Example:</h4>
+                    <pre><code>
+# Convert RAS coordinates to voxel coordinates
+ras_coords = (80, 90, 75)
+voxel_coords = analyzer.ras_to_voxel(ras_coords)
+print(f"RAS coordinates {ras_coords} converted to voxel coordinates: {voxel_coords}")
+                    </code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="visualization-module">
+            <h2>Visualization Module (ti_field_visualization.py)</h2>
+            
+            <div id="create-bar-chart" class="method">
+                <h3>create_bar_chart(analyzer, n_regions=20, output_dir=None)</h3>
+                <p>Create a bar chart of top regions by mean field value.</p>
+                
+                <h4>Parameters:</h4>
+                <div class="param">
+                    <span class="param-name">analyzer:</span>
+                    <span class="param-type">TIFieldAnalyzer</span>
+                    <p>Analyzer object with results_df attribute</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">n_regions:</span>
+                    <span class="param-type">int, optional</span>
+                    <p>Number of top regions to display</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">output_dir:</span>
+                    <span class="param-type">str, optional</span>
+                    <p>Output directory (defaults to analyzer's output_dir)</p>
+                </div>
+                
+                <div class="returns">
+                    <h4>Returns:</h4>
+                    <span class="returns-type">str</span>
+                    <p>Path to saved figure</p>
+                </div>
+                
+                <p>This function creates a horizontal bar chart of the top regions by mean field value, using the region colors for the bars. The chart is saved as 'top_regions_bar.png' in the output directory.</p>
+                
+                <div class="example">
+                    <h4>Example:</h4>
+                    <pre><code>
+import ti_field_visualization as visu
+
+# Create bar chart of top 15 regions
+figure_path = visu.create_bar_chart(analyzer, n_regions=15)
+print(f"Bar chart saved to {figure_path}")
+                    </code></pre>
+                </div>
+            </div>
+
+            <div id="create-slices-visualization" class="method">
+                <h3>create_slices_visualization(analyzer, n_regions=8, output_dir=None)</h3>
+                <p>Create visualization of the top regions on anatomical slices.</p>
+                
+                <h4>Parameters:</h4>
+                <div class="param">
+                    <span class="param-name">analyzer:</span>
+                    <span class="param-type">TIFieldAnalyzer</span>
+                    <p>Analyzer object</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">n_regions:</span>
+                    <span class="param-type">int, optional</span>
+                    <p>Number of top regions to highlight</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">output_dir:</span>
+                    <span class="param-type">str, optional</span>
+                    <p>Output directory (defaults to analyzer's output_dir)</p>
+                </div>
+                
+                <div class="returns">
+                    <h4>Returns:</h4>
+                    <span class="returns-type">str</span>
+                    <p>Path to saved figure</p>
+                </div>
+                
+                <p>This function creates a 2x3 grid of anatomical slices (sagittal, coronal, axial) showing the field distribution and the top regions. The first row shows the field overlay, and the second row shows the atlas overlay with top regions highlighted. The figure is saved as 'field_and_regions_slices.png' in the output directory.</p>
+                
+                <div class="example">
+                    <h4>Example:</h4>
+                    <pre><code>
+import ti_field_visualization as visu
+
+# Create slice visualization highlighting top 10 regions
+figure_path = visu.create_slices_visualization(analyzer, n_regions=10)
+print(f"Slice visualization saved to {figure_path}")
+                    </code></pre>
+                </div>
+            </div>
+
+            <div id="generate-histogram" class="method">
+                <h3>generate_histogram(analyzer, n_regions=5, output_dir=None)</h3>
+                <p>Generate histograms of field values for top regions.</p>
+                
+                <h4>Parameters:</h4>
+                <div class="param">
+                    <span class="param-name">analyzer:</span>
+                    <span class="param-type">TIFieldAnalyzer</span>
+                    <p>Analyzer object</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">n_regions:</span>
+                    <span class="param-type">int, optional</span>
+                    <p>Number of top regions to display</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">output_dir:</span>
+                    <span class="param-type">str, optional</span>
+                    <p>Output directory (defaults to analyzer's output_dir)</p>
+                </div>
+                
+                <div class="returns">
+                    <h4>Returns:</h4>
+                    <span class="returns-type">str</span>
+                    <p>Path to saved figure</p>
+                </div>
+                
+                <p>This function creates a histogram showing the distribution of field values for the top regions. Each region is represented by a different color. The figure is saved as 'region_histograms.png' in the output directory.</p>
+                
+                <div class="example">
+                    <h4>Example:</h4>
+                    <pre><code>
+import ti_field_visualization as visu
+
+# Generate histograms for top 3 regions
+figure_path = visu.generate_histogram(analyzer, n_regions=3)
+print(f"Histograms saved to {figure_path}")
+                    </code></pre>
+                </div>
+            </div>
+
+            <div id="generate-report" class="method">
+                <h3>generate_report(analyzer, visualizations=True)</h3>
+                <p>Generate a comprehensive HTML report.</p>
+                
+                <h4>Parameters:</h4>
+                <div class="param">
+                    <span class="param-name">analyzer:</span>
+                    <span class="param-type">TIFieldAnalyzer</span>
+                    <p>Analyzer object with results</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">visualizations:</span>
+                    <span class="param-type">bool, optional</span>
+                    <p>Whether to generate visualizations</p>
+                </div>
+                
+                <div class="returns">
+                    <h4>Returns:</h4>
+                    <span class="returns-type">str</span>
+                    <p>Path to HTML report</p>
+                </div>
+                
+                <p>This function generates a comprehensive HTML report with summary statistics, top regions, and visualizations if requested. The report is saved as 'analysis_report.html' in the output directory.</p>
+                
+                <div class="example">
+                    <h4>Example:</h4>
+                    <pre><code>
+import ti_field_visualization as visu
+
+# Generate a full HTML report
+report_path = visu.generate_report(analyzer, visualizations=True)
+print(f"HTML report saved to {report_path}")
+                    </code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="analysis-scripts">
+            <h2>Analysis Scripts</h2>
+            
+            <div id="voxel-analysis" class="method">
+                <h3>voxel_analysis.py</h3>
+                <p>Script for atlas-based voxel analysis of TI fields.</p>
+                
+                <h4>Command-line Arguments:</h4>
+                <ul>
+                    <li><code>--field</code>: NIfTI file containing the field values (required)</li>
+                    <li><code>--atlas</code>: NIfTI file containing the atlas parcellation (required)</li>
+                    <li><code>--labels</code>: Text file with region labels (required)</li>
+                    <li><code>--output</code>: Output directory for results (default: 'ti_field_analysis')</li>
+                    <li><code>--t1-mni</code>: Optional T1 MNI reference image for visualization</li>
+                    <li><code>--top-n</code>: Number of top regions to visualize (default: 20)</li>
+                    <li><code>--no-visualizations</code>: Skip generating visualizations</li>
+                </ul>
+                
+                <p>This script performs voxel-based analysis of TI fields using an atlas parcellation. It calculates statistics for each region in the atlas and generates visualizations and a report.</p>
+                
+                <div class="example">
+                    <h4>Example Usage:</h4>
+                    <pre><code>
+python voxel_analysis.py \
+    --field TI_max.nii.gz \
+    --atlas HCP_parcellation.nii.gz \
+    --labels HCP.txt \
+    --t1-mni T1_mni.nii.gz \
+    --output voxel_results \
+    --top-n 20
+                    </code></pre>
+                </div>
+                
+                <h4>Output Files:</h4>
+                <ul>
+                    <li><code>region_stats.csv</code>: Detailed region statistics</li>
+                    <li><code>top_regions_bar.png</code>: Bar chart of top regions</li>
+                    <li><code>field_and_regions_slices.png</code>: Field distribution visualization</li>
+                    <li><code>region_histograms.png</code>: Field value distributions</li>
+                    <li><code>analysis_report.html</code>: Comprehensive HTML report</li>
+                </ul>
+            </div>
+
+            <div id="sphere-analysis" class="method">
+                <h3>sphere_analysis.py</h3>
+                <p>Script for spherical ROI analysis of TI fields.</p>
+                
+                <h4>Command-line Arguments:</h4>
+                <ul>
+                    <li><code>--field</code>: NIfTI file containing the field values (required)</li>
+                    <li><code>--output</code>: Output directory for results (default: 'ti_sphere_analysis')</li>
+                    <li><code>--coords</code>: Coordinates of sphere center as x,y,z or path to JSON file with multiple coordinates (required)</li>
+                    <li><code>--radius</code>: Radius of sphere in mm (default: 5.0)</li>
+                    <li><code>--compare</code>: Compare multiple ROIs and calculate differential values</li>
+                    <li><code>--t1-mni</code>: Optional T1 MNI reference image for visualization</li>
+                    <li><code>--no-visualizations</code>: Skip generating visualizations</li>
+                </ul>
+                
+                <p>This script analyzes TI fields within spherical regions of interest. It can analyze a single ROI or multiple ROIs defined in a JSON file, and can compare field values between ROIs.</p>
+                
+                <div class="example">
+                    <h4>Example Usage:</h4>
+                    <pre><code>
+# Single ROI analysis
+python sphere_analysis.py \
+    --field TI_max.nii.gz \
+    --coords 80,90,75 \
+    --radius 5 \
+    --output sphere_results
+
+# Multiple ROI analysis with comparison
+python sphere_analysis.py \
+    --field TI_max.nii.gz \
+    --coords rois.json \
+    --radius 5 \
+    --compare \
+    --t1-mni T1_mni.nii.gz \
+    --output multi_roi_analysis
+                    </code></pre>
+                </div>
+                
+                <h4>Coordinate Input Formats:</h4>
+                <ul>
+                    <li>Single Coordinate: <code>x,y,z</code> (e.g., <code>80,90,75</code>)</li>
+                    <li>JSON File with Multiple ROIs:
+                        <pre><code>
+{
+  "ROI1": [80, 90, 75],
+  "ROI2": [60, 70, 80]
+}
+                        </code></pre>
+                    </li>
+                </ul>
+                
+                <h4>Output Files:</h4>
+                <ul>
+                    <li><code>sphere_roi_results.csv</code>: ROI-specific statistics</li>
+                    <li><code>sphere_roi_differentials.csv</code>: Inter-ROI differential values (if --compare is used)</li>
+                    <li><code>mean_values.png</code>: ROI mean value comparison</li>
+                    <li><code>differential_values.png</code>: Differential value visualization (if --compare is used)</li>
+                    <li>Sphere mask NIfTI files for each ROI</li>
+                </ul>
+            </div>
+
+            <div id="cortex-analysis" class="method">
+                <h3>cortex_analysis.py</h3>
+                <p>Script for cortical region analysis of TI fields.</p>
+                
+                <h4>Command-line Arguments:</h4>
+                <ul>
+                    <li><code>--field</code>: NIfTI file containing the field values (required)</li>
+                    <li><code>--atlas</code>: NIfTI file containing the HCP atlas parcellation (required)</li>
+                    <li><code>--labels</code>: Text file with HCP region labels (required)</li>
+                    <li><code>--output</code>: Output directory for results (default: 'ti_cortex_analysis')</li>
+                    <li><code>--regions</code>: Region IDs or names to analyze (can specify multiple) (required)</li>
+                    <li><code>--compare</code>: Compare multiple regions and calculate differential values</li>
+                    <li><code>--t1-mni</code>: Optional T1 MNI reference image for visualization</li>
+                    <li><code>--no-visualizations</code>: Skip generating visualizations</li>
+                </ul>
+                
+                <p>This script analyzes TI fields in specific cortical regions defined in the HCP atlas. It can compare field values between regions.</p>
+                
+                <div class="example">
+                    <h4>Example Usage:</h4>
+                    <pre><code>
+python cortex_analysis.py \
+    --field TI_max.nii.gz \
+    --atlas HCP_parcellation.nii.gz \
+    --labels HCP.txt \
+    --regions "Left Precentral" "Right Precentral" 20 21 \
+    --compare \
+    --output cortex_results
+                    </code></pre>
+                </div>
+                
+                <h4>Output Files:</h4>
+                <ul>
+                    <li><code>cortical_region_results.csv</code>: Region-specific statistics</li>
+                    <li><code>cortical_region_differentials.csv</code>: Inter-region differential values (if --compare is used)</li>
+                    <li><code>mean_values.png</code>: Region mean value comparison</li>
+                    <li><code>differential_values.png</code>: Differential value visualization (if --compare is used)</li>
+                    <li><code>value_distributions.png</code>: Boxplot of field value distributions</li>
+                    <li>Region mask NIfTI files for each analyzed region</li>
+                </ul>
+                
+                <h4>Key Functions:</h4>
+                <ul>
+                    <li><code>load_hcp_labels(hcp_labels_file)</code>: Load HCP region labels from the specified file</li>
+                    <li><code>process_region_line(line, region_info)</code>: Process a single line from the HCP labels file</li>
+                    <li><code>find_region_ids(region_inputs, region_info)</code>: Find region IDs based on user input</li>
+                    <li><code>analyze_cortical_region(analyzer, region_id, region_name)</code>: Analyze a specific cortical region</li>
+                    <li><code>main()</code>: Main function for cortical region analysis</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="comparison-module">
+            <h2>Comparison Module (compare_field_scans.py)</h2>
+            
+            <div id="compare-field-scans" class="method">
+                <h3>compare_field_scans(field1, field2, atlas, labels, regions, output_dir, t1_mni=None, visualize=True, top_n=20)</h3>
+                <p>Compare two field scans focusing on specific cortical regions.</p>
+                
+                <h4>Parameters:</h4>
+                <div class="param">
+                    <span class="param-name">field1:</span>
+                    <span class="param-type">str</span>
+                    <p>Path to first NIfTI field file</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">field2:</span>
+                    <span class="param-type">str</span>
+                    <p>Path to second NIfTI field file</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">atlas:</span>
+                    <span class="param-type">str</span>
+                    <p>Path to atlas NIfTI file</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">labels:</span>
+                    <span class="param-type">str</span>
+                    <p>Path to labels file</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">regions:</span>
+                    <span class="param-type">list</span>
+                    <p>List of region IDs or names to analyze. If empty, all regions will be analyzed.</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">output_dir:</span>
+                    <span class="param-type">str</span>
+                    <p>Directory to save outputs</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">t1_mni:</span>
+                    <span class="param-type">str, optional</span>
+                    <p>Path to T1 MNI reference for visualization</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">visualize:</span>
+                    <span class="param-type">bool, optional</span>
+                    <p>Whether to generate visualizations</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">top_n:</span>
+                    <span class="param-type">int, optional</span>
+                    <p>Number of top regions to show in visualizations for full analysis</p>
+                </div>
+                
+                <div class="returns">
+                    <h4>Returns:</h4>
+                    <span class="returns-type">pandas.DataFrame</span>
+                    <p>Comparison results</p>
+                </div>
+                
+                <p>This function compares two field scans by analyzing the differences in field values between the two scans for specific cortical regions or all regions.</p>
+                
+                <div class="example">
+                    <h4>Example Usage:</h4>
+                    <pre><code>
+from compare_field_scans import compare_field_scans
+
+# Compare two field scans for specific regions
+results_df = compare_field_scans(
+    field1='scan1.nii.gz',
+    field2='scan2.nii.gz',
+    atlas='HCP_parcellation.nii.gz',
+    labels='HCP.txt',
+    regions=['Left Precentral', 'Right Precentral'],
+    output_dir='comparison_results',
+    t1_mni='T1_mni.nii.gz'
+)
+                    </code></pre>
+                </div>
+                
+                <h4>Output Files:</h4>
+                <ul>
+                    <li><code>field_comparison.csv</code>: CSV file with comparison results</li>
+                    <li><code>field_difference.nii.gz</code>: NIfTI file with difference between the two fields</li>
+                    <li><code>mean_diff_bar.png</code>: Bar chart of mean differences by region</li>
+                    <li><code>means_scatter.png</code>: Scatter plot comparing mean values</li>
+                    <li><code>field_difference_slices.png</code>: Visualization of field differences</li>
+                    <li><code>field_regions_overlay.png</code>: Visualization of regions overlaid on field data</li>
+                    <li><code>region_legend.png</code>: Legend for region colors</li>
+                    <li><code>difference_histogram.png</code>: Histogram of differences (for full analysis)</li>
+                    <li><code>comparison_report.html</code>: HTML report of comparison results</li>
+                </ul>
+            </div>
+
+            <div id="create-comparison-visualizations" class="method">
+                <h3>create_comparison_visualizations(comparison_df, analyzer1, analyzer2, output_dir, is_full_analysis=False, top_n=20)</h3>
+                <p>Create visualizations for the field comparison.</p>
+                
+                <h4>Parameters:</h4>
+                <div class="param">
+                    <span class="param-name">comparison_df:</span>
+                    <span class="param-type">pandas.DataFrame</span>
+                    <p>DataFrame with comparison results</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">analyzer1:</span>
+                    <span class="param-type">TIFieldAnalyzer</span>
+                    <p>Analyzer for first field</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">analyzer2:</span>
+                    <span class="param-type">TIFieldAnalyzer</span>
+                    <p>Analyzer for second field</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">output_dir:</span>
+                    <span class="param-type">str</span>
+                    <p>Directory to save visualizations</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">is_full_analysis:</span>
+                    <span class="param-type">bool</span>
+                    <p>Whether this is a full analysis of all regions</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">top_n:</span>
+                    <span class="param-type">int</span>
+                    <p>Number of top regions to show in visualizations</p>
+                </div>
+                
+                <p>This function creates various visualizations for comparing two field scans, including bar charts, scatter plots, and slice visualizations.</p>
+            </div>
+
+            <div id="generate-comparison-report" class="method">
+                <h3>generate_comparison_report(comparison_df, output_dir, field1_name, field2_name, is_full_analysis=False)</h3>
+                <p>Generate an HTML report for the field comparison.</p>
+                
+                <h4>Parameters:</h4>
+                <div class="param">
+                    <span class="param-name">comparison_df:</span>
+                    <span class="param-type">pandas.DataFrame</span>
+                    <p>DataFrame with comparison results</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">output_dir:</span>
+                    <span class="param-type">str</span>
+                    <p>Directory to save report</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">field1_name:</span>
+                    <span class="param-type">str</span>
+                    <p>Name of first field</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">field2_name:</span>
+                    <span class="param-type">str</span>
+                    <p>Name of second field</p>
+                </div>
+                <div class="param">
+                    <span class="param-name">is_full_analysis:</span>
+                    <span class="param-type">bool</span>
+                    <p>Whether this is a full analysis of all regions</p>
+                </div>
+                
+                <p>This function generates a comprehensive HTML report for the field comparison, including summary statistics, region comparison tables, and visualizations.</p>
+            </div>
+        </section>
+
+        <section id="usage-examples">
+            <h2>Usage Examples</h2>
+            
+            <h3>Basic Voxel Analysis</h3>
+            <div class="example">
+                <pre><code>
+python voxel_analysis.py \
+    --field TI_max.nii.gz \
+    --atlas HCP_parcellation.nii.gz \
+    --labels HCP.txt \
+    --output voxel_results
+                </code></pre>
+            </div>
+            
+            <h3>Spherical ROI Analysis</h3>
+            <div class="example">
+                <pre><code>
+python sphere_analysis.py \
+    --field TI_max.nii.gz \
+    --coords 80,90,75 \
+    --radius 5 \
+    --output sphere_results
+                </code></pre>
+            </div>
+            
+            <h3>Multi-ROI Analysis with Comparison</h3>
+            <div class="example">
+                <pre><code>
+# Create a JSON file with multiple ROIs
+echo '{
+  "ROI1": [80, 90, 75],
+  "ROI2": [60, 70, 80],
+  "ROI3": [40, 50, 60]
+}' > rois.json
+
+# Run the analysis
+python sphere_analysis.py \
+    --field TI_max.nii.gz \
+    --coords rois.json \
+    --radius 5 \
+    --compare \
+    --output multi_roi_analysis
+                </code></pre>
+            </div>
+            
+            <h3>Cortical Region Analysis</h3>
+            <div class="example">
+                <pre><code>
+python cortex_analysis.py \
+    --field TI_max.nii.gz \
+    --atlas HCP_parcellation.nii.gz \
+    --labels HCP.txt \
+    --regions "Left Precentral" "Right Precentral" \
+    --compare \
+    --output cortex_results
+                </code></pre>
+            </div>
+            
+            <h3>Field Comparison</h3>
+            <div class="example">
+                <pre><code>
+python compare_field_scans.py \
+    --field1 scan1.nii.gz \
+    --field2 scan2.nii.gz \
+    --atlas HCP_parcellation.nii.gz \
+    --labels HCP.txt \
+    --regions "Left Precentral" "Right Precentral" \
+    --output comparison_results
+                </code></pre>
+            </div>
+            
+            <h3>Programmatic Usage</h3>
+            <div class="example">
+                <pre><code>
+from ti_field_core import TIFieldAnalyzer
+import ti_field_visualization as visu
+
+# Initialize analyzer
+analyzer = TIFieldAnalyzer(
+    field_nifti='TI_max.nii.gz',
+    atlas_nifti='HCP_parcellation.nii.gz',
+    hcp_labels_file='HCP.txt',
+    output_dir='custom_analysis'
+)
+
+# Perform region-based analysis
+results_df = analyzer.analyze_by_region()
+
+# Print top 5 regions
+print(results_df.head(5))
+
+# Save results to CSV
+csv_path = analyzer.save_results()
+
+# Generate visualizations
+bar_chart_path = visu.create_bar_chart(analyzer, n_regions=15)
+slices_path = visu.create_slices_visualization(analyzer, n_regions=10)
+histogram_path = visu.generate_histogram(analyzer, n_regions=5)
+
+# Generate HTML report
+report_path = visu.generate_report(analyzer)
+                </code></pre>
+            </div>
+        </section>
+
+    </div>
+</body>
+</html>
