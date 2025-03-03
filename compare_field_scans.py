@@ -288,7 +288,7 @@ def create_comparison_visualizations(comparison_df, analyzer1, analyzer2, output
         plt.close()
         print(f"Difference histogram saved to {figure_path}")
     
-    # Create a field difference visualization using slices
+# Create a field difference visualization using slices
     try:
         # Load both field data
         field1_data = analyzer1.field_data
@@ -298,7 +298,7 @@ def create_comparison_visualizations(comparison_df, analyzer1, analyzer2, output
         if field1_data.shape == field2_data.shape:
             diff_data = field2_data - field1_data
             
-            # Create figure with 3 columns (sagittal, coronal, axial)
+            # Create figure with 3 columns (sagittal, coronal, axial) - THIS LINE WAS MISSING
             fig, axes = plt.subplots(3, 3, figsize=(15, 15))
             
             # Get middle slices for each dimension
@@ -308,18 +308,17 @@ def create_comparison_visualizations(comparison_df, analyzer1, analyzer2, output
             
             # Background image for visualization
             if analyzer1.t1_data is not None:
-                # If T1 reference is available, use it as background
                 background_data = analyzer1.t1_data
                 cmap_bg = 'gray'
             else:
-                # If no T1, use zeros
                 background_data = np.zeros_like(field1_data)
                 cmap_bg = 'gray'
             
-            # Normalize for visualization
+            # Normalize for visualization - ADJUSTED TO RAISE MINIMUM THRESHOLD
             vmax = max(np.max(field1_data), np.max(field2_data))
-            vmin = min(np.min(field1_data), np.min(field2_data))
+            vmin = vmax * 0.2  # Raise minimum threshold
             diff_vmax = np.max(np.abs(diff_data))
+            diff_vmin = -diff_vmax  # For coolwarm colormap we want symmetric scale but higher threshold
             
             # First row: Field 1
             # Sagittal view (x_mid)
@@ -362,19 +361,19 @@ def create_comparison_visualizations(comparison_df, analyzer1, analyzer2, output
             # Third row: Difference (Field2 - Field1)
             # Sagittal view (x_mid)
             axes[2, 0].imshow(np.rot90(background_data[x_mid, :, :]), cmap=cmap_bg, alpha=0.5)
-            axes[2, 0].imshow(np.rot90(diff_data[x_mid, :, :]), cmap='coolwarm', vmin=-diff_vmax, vmax=diff_vmax, alpha=0.7)
+            axes[2, 0].imshow(np.rot90(diff_data[x_mid, :, :]), cmap='coolwarm', vmin=diff_vmin, vmax=diff_vmax, alpha=0.7)
             axes[2, 0].set_title(f'Difference - Sagittal (x={x_mid})')
             axes[2, 0].axis('off')
             
             # Coronal view (y_mid)
             axes[2, 1].imshow(np.rot90(background_data[:, y_mid, :]), cmap=cmap_bg, alpha=0.5)
-            axes[2, 1].imshow(np.rot90(diff_data[:, y_mid, :]), cmap='coolwarm', vmin=-diff_vmax, vmax=diff_vmax, alpha=0.7)
+            axes[2, 1].imshow(np.rot90(diff_data[:, y_mid, :]), cmap='coolwarm', vmin=diff_vmin, vmax=diff_vmax, alpha=0.7)
             axes[2, 1].set_title(f'Difference - Coronal (y={y_mid})')
             axes[2, 1].axis('off')
             
             # Axial view (z_mid)
             axes[2, 2].imshow(np.rot90(background_data[:, :, z_mid]), cmap=cmap_bg, alpha=0.5)
-            im3 = axes[2, 2].imshow(np.rot90(diff_data[:, :, z_mid]), cmap='coolwarm', vmin=-diff_vmax, vmax=diff_vmax, alpha=0.7)
+            im3 = axes[2, 2].imshow(np.rot90(diff_data[:, :, z_mid]), cmap='coolwarm', vmin=diff_vmin, vmax=diff_vmax, alpha=0.7)
             axes[2, 2].set_title(f'Difference - Axial (z={z_mid})')
             axes[2, 2].axis('off')
             
@@ -400,12 +399,19 @@ def create_comparison_visualizations(comparison_df, analyzer1, analyzer2, output
         
     # Create visualization of analyzed regions overlaid on field data
     try:
-        print("\nCreating region overlay visualization...")
-        
         # Get the atlas data and the regions we're comparing
         atlas_data = analyzer1.atlas_data
-        region_ids = comparison_df['RegionID'].unique()
-        
+
+        # For full analysis, limit to top regions in overlay
+        if is_full_analysis and len(comparison_df) > top_n:
+            # Get top regions by absolute difference (same as used for bar chart)
+            display_df = comparison_df.nlargest(top_n, 'Abs_Mean_Diff')
+            region_ids = display_df['RegionID'].unique()
+        else:
+            region_ids = comparison_df['RegionID'].unique()
+
+        print(f"Creating overlay with {len(region_ids)} regions")
+
         # Create a region mask highlighting the analyzed regions
         region_mask = np.zeros_like(atlas_data)
         region_colors = np.zeros((*atlas_data.shape, 4), dtype=np.float32)  # RGBA (with alpha)
@@ -472,11 +478,12 @@ def create_comparison_visualizations(comparison_df, analyzer1, analyzer2, output
         
         # Create field overlay with regions
         fig, axes = plt.subplots(3, 3, figsize=(18, 18))
-        
-        # Normalize for visualization
+
+        # Normalize for visualization with same raised threshold as before
         vmax = max(np.max(field1_data), np.max(field2_data))
-        vmin = min(np.min(field1_data), np.min(field2_data))
+        vmin = vmax * 0.2  # Same threshold as used earlier
         diff_vmax = np.max(np.abs(diff_data))
+        diff_vmin = -diff_vmax
         
         # Row 1: Field 1 with regions
         # Sagittal view
@@ -525,21 +532,21 @@ def create_comparison_visualizations(comparison_df, analyzer1, analyzer2, output
         # Row 3: Difference with regions
         # Sagittal view
         axes[2, 0].imshow(np.rot90(background_data[x_mid, :, :]), cmap=cmap_bg, alpha=0.5)
-        axes[2, 0].imshow(np.rot90(diff_data[x_mid, :, :]), cmap='coolwarm', vmin=-diff_vmax, vmax=diff_vmax, alpha=0.7)
+        axes[2, 0].imshow(np.rot90(diff_data[x_mid, :, :]), cmap='coolwarm', vmin=diff_vmin, vmax=diff_vmax, alpha=0.7)
         axes[2, 0].imshow(np.rot90(region_colors[x_mid, :, :]), alpha=np.rot90(region_mask[x_mid, :, :])*0.8)
         axes[2, 0].set_title(f'Difference with Regions - Sagittal (x={x_mid})')
         axes[2, 0].axis('off')
         
         # Coronal view
         axes[2, 1].imshow(np.rot90(background_data[:, y_mid, :]), cmap=cmap_bg, alpha=0.5)
-        axes[2, 1].imshow(np.rot90(diff_data[:, y_mid, :]), cmap='coolwarm', vmin=-diff_vmax, vmax=diff_vmax, alpha=0.7)
+        axes[2, 1].imshow(np.rot90(diff_data[:, y_mid, :]), cmap='coolwarm', vmin=diff_vmin, vmax=diff_vmax, alpha=0.7)
         axes[2, 1].imshow(np.rot90(region_colors[:, y_mid, :]), alpha=np.rot90(region_mask[:, y_mid, :])*0.8)
         axes[2, 1].set_title(f'Difference with Regions - Coronal (y={y_mid})')
         axes[2, 1].axis('off')
         
         # Axial view
         axes[2, 2].imshow(np.rot90(background_data[:, :, z_mid]), cmap=cmap_bg, alpha=0.5)
-        im3 = axes[2, 2].imshow(np.rot90(diff_data[:, :, z_mid]), cmap='coolwarm', vmin=-diff_vmax, vmax=diff_vmax, alpha=0.7)
+        im3 = axes[2, 2].imshow(np.rot90(diff_data[:, :, z_mid]), cmap='coolwarm', vmin=diff_vmin, vmax=diff_vmax, alpha=0.7)
         axes[2, 2].imshow(np.rot90(region_colors[:, :, z_mid]), alpha=np.rot90(region_mask[:, :, z_mid])*0.8)
         axes[2, 2].set_title(f'Difference with Regions - Axial (z={z_mid})')
         axes[2, 2].axis('off')
@@ -593,21 +600,7 @@ def create_comparison_visualizations(comparison_df, analyzer1, analyzer2, output
         traceback.print_exc()
 
 def generate_comparison_report(comparison_df, output_dir, field1_name, field2_name, is_full_analysis=False):
-    """Generate an HTML report for the field comparison.
-    
-    Parameters
-    ----------
-    comparison_df : pandas.DataFrame
-        DataFrame with comparison results
-    output_dir : str
-        Directory to save report
-    field1_name : str
-        Name of first field
-    field2_name : str
-        Name of second field
-    is_full_analysis : bool
-        Whether this is a full analysis of all regions
-    """
+    """Generate an HTML report for the field comparison."""
     print("\nGenerating comparison report...")
     
     # Create HTML head and style section
@@ -813,241 +806,6 @@ def generate_comparison_report(comparison_df, output_dir, field1_name, field2_na
     
     # Combine all parts
     full_html = html_head + html_content + region_rows + visualizations + field_diff_section + region_vis_section + full_analysis_section + html_closing
-    
-    # Write HTML file
-    html_path = os.path.join(output_dir, 'comparison_report.html')
-    with open(html_path, 'w') as f:
-        f.write(full_html)
-        
-    print(f"HTML comparison report saved to {html_path}")
-    print("\nGenerating comparison report...")
-    
-    # Create HTML head and style section
-    html_head = """<!DOCTYPE html>
-<html>
-<head>
-    <title>TI Field Comparison Report</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1, h2, h3 { color: #2c3e50; }
-        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        img { max-width: 100%; height: auto; margin: 20px 0; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .positive { color: red; }
-        .negative { color: blue; }
-        .summary-box { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; background-color: #f9f9f9; }
-    </style>
-</head>
-<body>
-    <div class="container">
-"""
-    
-    # Format the highest and lowest difference regions
-    try:
-        max_region = comparison_df.loc[comparison_df['Mean_Diff'].idxmax(), 'RegionName']
-        max_diff = comparison_df['Mean_Diff'].max()
-        max_region_text = f"{max_region} ({max_diff:.4f})"
-    except:
-        max_region_text = "N/A"
-        
-    try:
-        min_region = comparison_df.loc[comparison_df['Mean_Diff'].idxmin(), 'RegionName']
-        min_diff = comparison_df['Mean_Diff'].min()
-        min_region_text = f"{min_region} ({min_diff:.4f})"
-    except:
-        min_region_text = "N/A"
-    
-    # Create the report content section
-    html_content = f"""
-        <h1>TI Field Comparison Report</h1>
-        <p><strong>Field 1:</strong> {field1_name}</p>
-        <p><strong>Field 2:</strong> {field2_name}</p>
-        <p><strong>Analysis Date:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
-        
-        <h2>Summary Statistics</h2>
-    """
-    
-    # Add analysis type note
-    if is_full_analysis:
-        html_content += f"""
-        <div class="summary-box">
-            <h3>Full Analysis Mode</h3>
-            <p>This report compares all {len(comparison_df)} atlas regions between the two field scans.</p>
-            <p>Key findings:</p>
-            <ul>
-                <li>{len(comparison_df[comparison_df['Mean_Diff'] > 0])} regions show increased field in Field 2</li>
-                <li>{len(comparison_df[comparison_df['Mean_Diff'] < 0])} regions show decreased field in Field 2</li>
-                <li>Average absolute difference: {comparison_df['Mean_Diff'].abs().mean():.4f}</li>
-                <li>Maximum positive difference: {comparison_df['Mean_Diff'].max():.4f}</li>
-                <li>Maximum negative difference: {comparison_df['Mean_Diff'].min():.4f}</li>
-            </ul>
-        </div>
-        """
-    
-    html_content += f"""
-        <table>
-            <tr>
-                <th>Metric</th>
-                <th>Value</th>
-            </tr>
-            <tr>
-                <td>Number of Analyzed Regions</td>
-                <td>{len(comparison_df)}</td>
-            </tr>
-            <tr>
-                <td>Region with Largest Positive Difference</td>
-                <td>{max_region_text}</td>
-            </tr>
-            <tr>
-                <td>Region with Largest Negative Difference</td>
-                <td>{min_region_text}</td>
-            </tr>
-            <tr>
-                <td>Average Absolute Difference</td>
-                <td>{comparison_df['Mean_Diff'].abs().mean():.4f}</td>
-            </tr>
-        </table>
-    """
-    
-    # For full analysis, limit to top regions in table
-    if is_full_analysis and len(comparison_df) > 40:
-        # Get top 20 positive and 20 negative difference regions
-        top_pos = comparison_df.nlargest(20, 'Mean_Diff')
-        top_neg = comparison_df.nsmallest(20, 'Mean_Diff')
-        table_df = pd.concat([top_pos, top_neg])
-        
-        html_content += f"""
-        <h2>Top Regions by Difference (40 of {len(comparison_df)} total regions)</h2>
-        <p>Showing the 20 regions with largest positive and 20 with largest negative differences.</p>
-        """
-    else:
-        table_df = comparison_df
-        html_content += f"""
-        <h2>Region Comparison</h2>
-        """
-    
-    html_content += f"""
-        <table>
-            <tr>
-                <th>Region Name</th>
-                <th>Field 1 Mean</th>
-                <th>Field 2 Mean</th>
-                <th>Difference</th>
-                <th>Diff %</th>
-            </tr>
-    """
-    
-    # Generate rows for each region
-    region_rows = ""
-    for _, row in table_df.iterrows():
-        # Format difference values with color
-        diff_class = 'positive' if row['Mean_Diff'] > 0 else 'negative'
-        diff_formatted = f"<span class='{diff_class}'>{row['Mean_Diff']:.4f}</span>"
-        diff_pct_formatted = f"<span class='{diff_class}'>{row['Mean_Diff_Pct']:.2f}%</span>" if row['Mean_Diff_Pct'] != float('inf') else "<span class='{diff_class}'>∞%</span>"
-        
-        region_rows += f"""
-            <tr>
-                <td>{row['RegionName']}</td>
-                <td>{row['Field1_Mean']:.4f}</td>
-                <td>{row['Field2_Mean']:.4f}</td>
-                <td>{diff_formatted}</td>
-                <td>{diff_pct_formatted}</td>
-            </tr>
-        """
-    
-    # Add visualizations section
-    visualizations = """
-        </table>
-        
-        <h2>Visualizations</h2>
-        <div>
-            <h3>Mean Field Differences by Region</h3>
-            <img src="mean_diff_bar.png" alt="Mean Difference Bar Chart">
-        </div>
-        <div>
-            <h3>Comparison of Mean Field Values</h3>
-            <img src="means_scatter.png" alt="Means Scatter Plot">
-        </div>
-    """
-    
-    # Add field difference visualization if it exists
-    field_diff_section = ""
-    if os.path.exists(os.path.join(output_dir, 'field_difference_slices.png')):
-        field_diff_section = """
-        <div>
-            <h3>Field Difference Visualization</h3>
-            <img src="field_difference_slices.png" alt="Field Difference Slices">
-            <p>Top row: Field 1, Middle row: Field 2, Bottom row: Difference (Field 2 - Field 1)</p>
-            <p>Red indicates positive difference (Field 2 > Field 1), blue indicates negative difference (Field 1 > Field 2).</p>
-        </div>
-        """
-    
-    # Add region visualization section
-    region_vis_section = ""
-    if os.path.exists(os.path.join(output_dir, 'field_regions_overlay.png')):
-        region_vis_section = """
-        <div>
-            <h3>Brain Regions Overlaid on TI Fields</h3>
-            <img src="field_regions_overlay.png" alt="Field and Region Overlay">
-            <p>Shows the analyzed brain regions highlighted with distinct colors overlaid on the field data.</p>
-        """
-        
-        if os.path.exists(os.path.join(output_dir, 'region_legend.png')):
-            region_vis_section += """
-            <h4>Region Legend</h4>
-            <img src="region_legend.png" alt="Region Legend">
-            """
-                
-        region_vis_section += """
-        </div>
-        """
-    
-    # Add full analysis visualizations if they exist
-    full_analysis_section = ""
-    if is_full_analysis:
-        if os.path.exists(os.path.join(output_dir, 'difference_histogram.png')):
-            full_analysis_section += """
-            <div>
-                <h3>Distribution of Differences</h3>
-                <img src="difference_histogram.png" alt="Difference Histogram">
-            </div>
-            """
-            full_analysis_section += """
-            <div>
-                <h3>Distribution of Differences</h3>
-                <img src="difference_histogram.png" alt="Difference Histogram">
-            </div>
-            """
-    
-    # Close HTML tags
-    html_closing = """
-    </div>
-</body>
-</html>
-    """
-    
-    # Combine all parts
-    full_html = html_head + html_content + region_rows + visualizations + field_diff_section + region_vis_section + full_analysis_section + html_closing
-    
-    # Write HTML file
-    html_path = os.path.join(output_dir, 'comparison_report.html')
-    with open(html_path, 'w') as f:
-        f.write(full_html)
-        
-    print(f"HTML comparison report saved to {html_path}")
-    
-    # Close HTML tags
-    html_closing = """
-    </div>
-</body>
-</html>
-    """
-    
-    # Combine all parts
-    full_html = html_head + html_content + region_rows + visualizations + field_diff_section + full_analysis_section + html_closing
     
     # Write HTML file
     html_path = os.path.join(output_dir, 'comparison_report.html')

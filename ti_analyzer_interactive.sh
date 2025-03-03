@@ -49,14 +49,14 @@ scan_nifti_files() {
     return 0
 }
 
-# Function to find HCP atlas and labels
+# Function to find HCP atlas and labels - ENHANCED to allow manual T1 selection
 find_hcp_files() {
     hcp_atlas=""
     hcp_labels=""
     t1_mni=""
     
     # Look for HCP atlas file
-    for file in "$DATA_DIR"/*parcellation*.nii.gz "$DATA_DIR"/*atlas*.nii.gz "$DATA_DIR"/HCP*.nii.gz; do
+    for file in "$DATA_DIR"/*parcellation*.nii.gz "$DATA_DIR"/*atlas*.nii "$DATA_DIR"/HCP*.nii; do
         if [ -f "$file" ]; then
             hcp_atlas="$file"
             break
@@ -72,7 +72,7 @@ find_hcp_files() {
     done
     
     # Look for T1 MNI file
-    for file in "$DATA_DIR"/*T1*.nii.gz "$DATA_DIR"/*mni*.nii.gz; do
+    for file in "$DATA_DIR"/*T1*.nii "$DATA_DIR"/*mni*.nii "$DATA_DIR"/*brain*.nii; do
         if [ -f "$file" ]; then
             t1_mni="$file"
             break
@@ -232,11 +232,17 @@ run_voxel_analysis() {
     fi
     
     # Ask if T1 MNI should be used (if found)
-    use_t1=false
     if [ -n "$t1_mni" ]; then
-        echo -e "${YELLOW}Use T1 MNI reference for visualization? (y/n, default: y):${NC}"
+        echo -e "${YELLOW}Use T1 MNI reference ($(basename "$t1_mni")) as background for visualization?${NC}"
+        echo -e "${YELLOW}This will overlay the field data on anatomical MRI for better context. (y/n, default: y):${NC}"
         read -r use_t1_response
         if [ -z "$use_t1_response" ] || [[ "$use_t1_response" =~ ^[Yy]$ ]]; then
+            use_t1=true
+        fi
+    else
+        # Try to let the user select a T1 file manually
+        select_t1_mni
+        if [ $? -eq 0 ] && [ -n "$t1_mni" ]; then
             use_t1=true
         fi
     fi
@@ -786,6 +792,41 @@ run_compare_analysis() {
     echo ""
     read -n 1 -s -r -p "Press any key to return to main menu..."
     return
+}
+
+# Add this helper function to let users manually select a T1 MNI file
+select_t1_mni() {
+    if [ -z "$T1" ]; then
+        echo -e "${YELLOW}No T1 MNI reference found automatically. Would you like to select one? (y/n, default: n):${NC}"
+        read -r select_t1_response
+        if [[ "$select_t1_response" =~ ^[Yy]$ ]]; then
+            # Scan for potential T1/MNI files
+            t1_candidates=()
+            for file in "$DATA_DIR"/*.nii.gz "$DATA_DIR"/*.nii; do
+                if [ -f "$file" ]; then
+                    t1_candidates+=("$file")
+                fi
+            done
+            
+            if [ ${#t1_candidates[@]} -eq 0 ]; then
+                echo -e "${RED}No NIfTI files found for T1 reference${NC}"
+                return 1
+            fi
+            
+            echo -e "${YELLOW}Select T1 MNI reference file:${NC}"
+            select_file "Available NIfTI files:" "${t1_candidates[@]}"
+            if [ $? -eq 0 ]; then
+                t1_mni="$selected_file"
+                echo -e "${GREEN}Selected T1 MNI reference: $(basename "$t1_mni")${NC}"
+                echo ""
+                return 0
+            else
+                return 1
+            fi
+        fi
+    else
+        return 0
+    fi
 }
 
 # Main menu
