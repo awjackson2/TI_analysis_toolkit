@@ -20,6 +20,7 @@ Authors: TI Field Analysis Team
 import os
 import sys
 import argparse
+import json
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -27,6 +28,8 @@ from matplotlib.colors import Normalize
 import nibabel as nib
 from datetime import datetime
 from ti_field_core import TIFieldAnalyzer
+# Import the Papaya utility functions
+from papaya_utils import add_papaya_viewer, add_papaya_comparison, add_papaya_to_multiple_fields
 
 def compare_field_scans(field1, field2, atlas, labels, regions, output_dir, t1_mni=None, visualize=True, top_n=20):
     """
@@ -169,6 +172,7 @@ def compare_field_scans(field1, field2, atlas, labels, regions, output_dir, t1_m
     print(f"\nComparison results saved to {csv_path}")
     
     # Also create a difference NIfTI file
+    diff_path = None
     if analyzer1.field_data.shape == analyzer2.field_data.shape:
         diff_data = analyzer2.field_data - analyzer1.field_data
         diff_img = nib.Nifti1Image(diff_data, analyzer1.field_img.affine)
@@ -180,12 +184,14 @@ def compare_field_scans(field1, field2, atlas, labels, regions, output_dir, t1_m
     if visualize:
         create_comparison_visualizations(comparison_df, analyzer1, analyzer2, output_dir, is_full_analysis, top_n)
         # Generate HTML report
-        generate_comparison_report(
+        html_path = generate_comparison_report(
             comparison_df, 
             output_dir, 
-            os.path.basename(analyzer1.field_nifti), 
-            os.path.basename(analyzer2.field_nifti),
-            is_full_analysis
+            field1, 
+            field2,
+            is_full_analysis,
+            t1_mni,
+            diff_path
         )
     
     return comparison_df
@@ -598,9 +604,32 @@ def create_comparison_visualizations(comparison_df, analyzer1, analyzer2, output
         print(f"WARNING: Could not create field-region overlay visualization: {str(e)}")
         import traceback
         traceback.print_exc()
-
-def generate_comparison_report(comparison_df, output_dir, field1_name, field2_name, is_full_analysis=False):
-    """Generate an HTML report for the field comparison."""
+        
+def generate_comparison_report(comparison_df, output_dir, field1_name, field2_name, is_full_analysis=False, t1_mni=None, diff_path=None):
+    """Generate an HTML report for the field comparison.
+    
+    Parameters
+    ----------
+    comparison_df : pandas.DataFrame
+        DataFrame with comparison results
+    output_dir : str
+        Output directory for the report
+    field1_name : str
+        Path to the first field NIfTI file
+    field2_name : str
+        Path to the second field NIfTI file
+    is_full_analysis : bool, optional
+        Whether this is a full analysis of all regions
+    t1_mni : str, optional
+        Path to T1 MNI reference image
+    diff_path : str, optional
+        Path to the difference NIfTI file
+        
+    Returns
+    -------
+    str
+        Path to the generated HTML report
+    """
     print("\nGenerating comparison report...")
     
     # Create HTML head and style section
@@ -644,8 +673,8 @@ def generate_comparison_report(comparison_df, output_dir, field1_name, field2_na
     # Create the report content section
     html_content = f"""
         <h1>TI Field Comparison Report</h1>
-        <p><strong>Field 1:</strong> {field1_name}</p>
-        <p><strong>Field 2:</strong> {field2_name}</p>
+        <p><strong>Field 1:</strong> {os.path.basename(field1_name)}</p>
+        <p><strong>Field 2:</strong> {os.path.basename(field2_name)}</p>
         <p><strong>Analysis Date:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
         
         <h2>Summary Statistics</h2>
@@ -813,6 +842,39 @@ def generate_comparison_report(comparison_df, output_dir, field1_name, field2_na
         f.write(full_html)
         
     print(f"HTML comparison report saved to {html_path}")
+    
+    # Add Papaya visualization to the report
+    try:
+        print("\nAdding interactive Papaya visualization to the report...")
+        
+        # Determine which Papaya function to use based on available inputs
+        if t1_mni and os.path.exists(field1_name) and os.path.exists(field2_name):
+            if diff_path and os.path.exists(diff_path):
+                # Use the comparison function with difference map
+                print("Adding comparison viewer with difference map...")
+                add_papaya_comparison(html_path, t1_mni, field1_name, field2_name, diff_path)
+                print("Interactive comparison viewer with difference map added.")
+            else:
+                # Use multiple fields function without difference map
+                print("Adding multiple fields viewer...")
+                field_files = [field1_name, field2_name]
+                labels = [f"Field 1: {os.path.basename(field1_name)}", 
+                          f"Field 2: {os.path.basename(field2_name)}"]
+                add_papaya_to_multiple_fields(html_path, t1_mni, field_files, labels)
+                print("Interactive multiple fields viewer added.")
+        elif t1_mni and os.path.exists(field1_name):
+            # Just show one field
+            print("Adding single field viewer...")
+            add_papaya_viewer(html_path, t1_mni, field1_name)
+            print("Interactive single field viewer added.")
+        else:
+            print("Not enough data to add Papaya visualization.")
+    except Exception as e:
+        print(f"WARNING: Failed to add Papaya visualization: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    
+    return html_path
 
 def main():
     """Parse command-line arguments and run comparison."""

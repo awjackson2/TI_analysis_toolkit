@@ -20,6 +20,7 @@ def main():
     parser.add_argument('--t1-mni', help='Optional T1 MNI reference image for visualization')
     parser.add_argument('--top-n', type=int, default=20, help='Number of top regions to visualize')
     parser.add_argument('--no-visualizations', action='store_true', help='Skip generating visualizations')
+    parser.add_argument('--include-papaya', action='store_true', help='Include Papaya viewer in HTML report')
     
     args = parser.parse_args()
     
@@ -67,7 +68,7 @@ def main():
                 print(f"Warning: Could not create histograms: {str(e)}")
             
             try:
-                visu.generate_report(analyzer)
+                visu.generate_report(analyzer, include_papaya=args.include_papaya)
             except Exception as e:
                 print(f"Warning: Could not generate HTML report: {str(e)}")
         

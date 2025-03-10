@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 import matplotlib.colors as mcolors
+from papaya_utils import add_papaya_viewer, add_papaya_comparison, add_papaya_to_multiple_fields
 
 def create_bar_chart(analyzer, n_regions=20, output_dir=None):
     """Create bar chart of top regions by mean value.
@@ -237,8 +238,8 @@ def generate_histogram(analyzer, n_regions=5, output_dir=None):
     plt.close()
     print(f"Histograms saved to {figure_path}")
     return figure_path
-
-def generate_report(analyzer, visualizations=True):
+    
+def generate_report(analyzer, include_papaya=True):
     """Generate a comprehensive HTML report.
     
     Parameters
@@ -257,28 +258,25 @@ def generate_report(analyzer, visualizations=True):
     csv_path = analyzer.save_results()
     
     # Create visualizations if requested
-    if visualizations:
-        try:
-            bar_chart_path = create_bar_chart(analyzer)
-        except Exception as e:
-            print(f"Warning: Could not create bar chart: {str(e)}")
-            bar_chart_path = None
-            
-        try:
-            slices_path = create_slices_visualization(analyzer)
-        except Exception as e:
-            print(f"Warning: Could not create slice visualization: {str(e)}")
-            slices_path = None
-            
-        try:
-            histogram_path = generate_histogram(analyzer)
-        except Exception as e:
-            print(f"Warning: Could not create histograms: {str(e)}")
-            histogram_path = None
-    else:
+    
+    try:
+        bar_chart_path = create_bar_chart(analyzer)
+    except Exception as e:
+        print(f"Warning: Could not create bar chart: {str(e)}")
         bar_chart_path = None
+        
+    try:
+        slices_path = create_slices_visualization(analyzer)
+    except Exception as e:
+        print(f"Warning: Could not create slice visualization: {str(e)}")
         slices_path = None
+        
+    try:
+        histogram_path = generate_histogram(analyzer)
+    except Exception as e:
+        print(f"Warning: Could not create histograms: {str(e)}")
         histogram_path = None
+   
     
     # Load HTML template
     template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'report_template.txt')
@@ -299,27 +297,25 @@ def generate_report(analyzer, visualizations=True):
         """
     
     # Generate visualizations section if available
-    visualizations_section = ""
-    if visualizations:
-        visualizations_section += "<h2>Visualizations</h2>"
+    visualizations_section = "<h2>Visualizations</h2>"
+    
+    if bar_chart_path:
+        visualizations_section += f"""
+        <h3>Top Regions by Mean Field Value</h3>
+        <img src="{os.path.basename(bar_chart_path)}" alt="Bar Chart of Top Regions">
+        """
         
-        if bar_chart_path:
-            visualizations_section += f"""
-            <h3>Top Regions by Mean Field Value</h3>
-            <img src="{os.path.basename(bar_chart_path)}" alt="Bar Chart of Top Regions">
-            """
-            
-        if slices_path:
-            visualizations_section += f"""
-            <h3>Field Distribution and Top Regions</h3>
-            <img src="{os.path.basename(slices_path)}" alt="Field and Region Slices">
-            """
-            
-        if histogram_path:
-            visualizations_section += f"""
-            <h3>Field Value Distribution in Top Regions</h3>
-            <img src="{os.path.basename(histogram_path)}" alt="Field Value Histograms">
-            """
+    if slices_path:
+        visualizations_section += f"""
+        <h3>Field Distribution and Top Regions</h3>
+        <img src="{os.path.basename(slices_path)}" alt="Field and Region Slices">
+        """
+        
+    if histogram_path:
+        visualizations_section += f"""
+        <h3>Field Value Distribution in Top Regions</h3>
+        <img src="{os.path.basename(histogram_path)}" alt="Field Value Histograms">
+        """
     
     # Fill template with values
     html_content = template.format(
@@ -341,4 +337,8 @@ def generate_report(analyzer, visualizations=True):
         f.write(html_content)
         
     print(f"HTML report saved to {html_path}")
+    
+    # Add Papaya viewer if requested and files are provided
+    add_papaya_viewer(html_path, analyzer.t1_mni, analyzer.field_nifti)
+    
     return html_path
