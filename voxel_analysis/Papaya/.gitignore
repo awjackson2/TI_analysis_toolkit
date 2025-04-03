@@ -1,0 +1,11 @@
+.idea/
+.project
+.DS_Store
+build.sh
+release.sh
+/node_modules/
+/build/
+/tests/build/**/
+.jshint*
+juelich/
+/.vs

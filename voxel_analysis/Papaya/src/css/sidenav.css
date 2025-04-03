@@ -1,0 +1,281 @@
+.side-navbar {
+    width: 50px;
+    position: absolute;
+    background-color: black;
+    color: gold;
+    text-align: center;
+    border: 1px solid white;
+}
+
+    .side-navbar button {
+        width: 40px;
+        padding: 2px;
+        height: 40px;
+        margin: 4px auto;
+        padding: 2px;
+        cursor: pointer;
+        color: white;
+        background-color: darkgoldenrod;
+        border: 1px solid white;
+    }
+
+        .side-navbar button.selected {
+            background-color: red;
+            color: white;
+        }
+
+.side-navpanel {
+    width: 75px;
+    background-color: black;
+    color: darkgoldenrod;
+    text-align: center;
+    border: 1px solid white;
+    position: absolute;
+    border-radius: 10px;
+    padding: 5px;
+}
+
+    .side-navpanel button {
+        width: 40px;
+        padding: 2px;
+        height: 40px;
+        margin: 4px auto;
+        padding: 2px;
+        cursor: pointer;
+        color: white;
+        background-color: darkgoldenrod;
+        border: 1px solid white;
+    }
+
+.input-range {
+    -webkit-appearance: none;
+    height: 150px;
+    border-radius: 5px;
+    background: #ccc;
+    outline: none;
+    writing-mode: bt-lr;
+    -webkit-appearance: slider-vertical;
+    width: 10px;
+}
+
+.range-value {
+    position: absolute;
+    top: 50%;
+    font-weight: bolder;
+    font-size: medium;
+    margin-left: 5px;
+    border: 1px solid white;
+    padding: 2px;
+}
+
+.side-description {
+    z-index: 100;
+    position: absolute;
+    background-color: black;
+    color: gold;
+    text-align: center;
+    display: none;
+    border: 1px solid white;
+    overflow-y: scroll;
+    word-wrap: break-word;
+}
+
+#imageHeader, #imageInfo {
+    text-align: left;
+    padding: 10px;
+    line-height: 18px;
+}
+
+.side-description div {
+    padding: 5px;
+}
+
+.vertical-text {
+    -webkit-transform: rotate(-90deg);
+    -moz-transform: rotate(-90deg);
+    -o-transform: rotate(-90deg);
+    -ms-transform: rotate(-90deg);
+    transform: rotate(-90deg);
+    white-space: nowrap;
+    display: block;
+    z-index: 110;
+    background-color: black;
+    border-radius: 5px;
+    color: white;
+    padding: 5px;
+    position: absolute;
+    width: 160px;
+}
+
+.side-nav-tools-config {
+    width: 150px;
+    background-color: black;
+    color: white;
+    text-align: center;
+    border: 1px solid white;
+    position: absolute;
+    border-radius: 10px;
+    padding: 5px;
+}
+
+    .side-nav-tools-config div {
+        text-align: left;
+        padding: 5px;
+        color: darkgoldenrod;
+    }
+
+        .side-nav-tools-config div select {
+            display: block;
+            width: 100%;
+            padding: 6px 0px;
+            font-size: 14px;
+            line-height: 1.42857143;
+            color: #555;
+            background-color: #fff;
+            background-image: none;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: left;
+        }
+
+.overlays {
+    color: #e4ad00;
+    cursor: default; /* prevents cursor from changing to the i bar on the overlays*/
+    pointer-events: none;
+    text-overflow: ellipsis;
+    max-width: 48%;
+    font-size: 11px;
+    white-space: nowrap; /* overflow: hidden;*/
+    z-index: 3;
+    line-height: 15px;
+}
+
+#crossHairAxialRed {
+    background-color: red;
+    z-index: 90;
+}
+
+#crossHairCoronalGreen {
+    background-color: green;
+    z-index: 90
+}
+
+#crossHairSagitalBlue {
+    background-color: blue;
+    z-index: 90;
+}
+
+#crossHairSurfaceYellow {
+    background-color: yellow;
+    z-index: 90;
+}
+
+#selectedSliceAxialRed {
+    background-color: red;
+    z-index: 90;
+    height: 20px;
+    width: 70px;
+    border: 2px solid white;
+    color: white;
+    display: none;
+    text-align: center;
+}
+
+#selectedSliceCoronalGreen {
+    background-color: green;
+    z-index: 90;
+    height: 20px;
+    width: 70px;
+    border: 2px solid white;
+    display: none;
+    color: white;
+    text-align: center;
+}
+
+#selectedSliceSagitalBlue {
+    background-color: blue;
+    z-index: 90;
+    height: 20px;
+    width: 70px;
+    border: 2px solid white;
+    display: none;
+    color: white;
+    text-align: center;
+}
+
+#selectedSliceSurfaceYellow {
+    background-color: yellow;
+    z-index: 90;
+    height: 20px;
+    width: 70px;
+    border: 2px solid white;
+    display: none;
+    color: red;
+    text-align: center;
+}
+
+#drawAngleOnImages span {
+    transform: rotate(-90deg);
+}
+
+#mainImageOverlaysTopLeft {
+    text-align: left;
+    display: none;
+}
+
+#mainImageOverlaysTopRight {
+    text-align: right;
+    display: none;
+}
+
+#mainImageOverlaysBottomLeft {
+    text-align: left;
+    display: none;
+}
+
+#mainImageOverlaysBottomRight {
+    text-align: right;
+    display: none;
+}
+
+input[type="checkbox"].syncCine {
+    font-size: 30px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 2.0em;
+    height: 1.0em;
+    background: red;
+    border-radius: 3em;
+    position: relative;
+    cursor: pointer;
+    outline: none;
+    -webkit-transition: all .2s ease-in-out;
+    transition: all .2s ease-in-out;
+}
+
+    input[type="checkbox"].syncCine:checked {
+        background: green;
+    }
+
+    input[type="checkbox"].syncCine:after {
+        position: absolute;
+        content: "";
+        width: 1.0em;
+        height: 1.0em;
+        border-radius: 50%;
+        background: #fff;
+        -webkit-box-shadow: 0 0 .25em rgba(0,0,0,.3);
+        box-shadow: 0 0 .25em rgba(0,0,0,.3);
+        -webkit-transform: scale(.7);
+        transform: scale(.7);
+        left: 0;
+        -webkit-transition: all .2s ease-in-out;
+        transition: all .2s ease-in-out;
+    }
+
+    input[type="checkbox"].syncCine:checked:after {
+        left: calc(100% - 1.0em);
+    }
+
+/* Switch 1 Specific Style End */
