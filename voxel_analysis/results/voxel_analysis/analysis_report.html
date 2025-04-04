@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TI Field Analysis Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1, h2 { color: #2c3e50; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        img { max-width: 100%; height: auto; margin: 20px 0; }
+        .container { max-width: 1200px; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TI Field Analysis Report</h1>
+        <p><strong>Field Data:</strong> Little_Pairs_MNI.nii</p>
+        <p><strong>Atlas:</strong> HCP_parcellation.nii</p>
+        <p><strong>Analysis Date:</strong> 2025-04-03 19:00</p>
+        
+        <h2>Summary Statistics</h2>
+        <table>
+            <tr>
+                <th>Metric</th>
+                <th>Value</th>
+            </tr>
+            <tr>
+                <td>Total Field Mean</td>
+                <td>0.013560</td>
+            </tr>
+            <tr>
+                <td>Total Field Max</td>
+                <td>0.422338</td>
+            </tr>
+            <tr>
+                <td>Number of Analyzed Regions</td>
+                <td>360</td>
+            </tr>
+            <tr>
+                <td>Region with Highest Mean</td>
+                <td>R-5mv (0.148263)</td>
+            </tr>
+            <tr>
+                <td>Region with Highest Max</td>
+                <td>R-1 (0.422338)</td>
+            </tr>
+        </table>
+        
+        <h2>Top 10 Regions by Mean Field Value</h2>
+        <table>
+            <tr>
+                <th>Region ID</th>
+                <th>Region Name</th>
+                <th>Mean Value</th>
+                <th>Max Value</th>
+                <th>Volume (mm³)</th>
+            </tr>
+            
+            <tr>
+                <td>1037</td>
+                <td>R-5mv</td>
+                <td>0.148263</td>
+                <td>0.253694</td>
+                <td>1996.00</td>
+            </tr>
+        
+            <tr>
+                <td>1032</td>
+                <td>R-23d</td>
+                <td>0.146047</td>
+                <td>0.272870</td>
+                <td>1513.00</td>
+            </tr>
+        
+            <tr>
+                <td>32</td>
+                <td>L-23d</td>
+                <td>0.144449</td>
+                <td>0.281427</td>
+                <td>1261.00</td>
+            </tr>
+        
+            <tr>
+                <td>1034</td>
+                <td>R-d23ab</td>
+                <td>0.138737</td>
+                <td>0.210761</td>
+                <td>1106.00</td>
+            </tr>
+        
+            <tr>
+                <td>1038</td>
+                <td>R-23c</td>
+                <td>0.131997</td>
+                <td>0.271220</td>
+                <td>2498.00</td>
+            </tr>
+        
+            <tr>
+                <td>162</td>
+                <td>L-31a</td>
+                <td>0.131362</td>
+                <td>0.242774</td>
+                <td>1260.00</td>
+            </tr>
+        
+            <tr>
+                <td>1036</td>
+                <td>R-5m</td>
+                <td>0.129315</td>
+                <td>0.394326</td>
+                <td>2079.00</td>
+            </tr>
+        
+            <tr>
+                <td>1162</td>
+                <td>R-31a</td>
+                <td>0.128947</td>
+                <td>0.236800</td>
+                <td>1116.00</td>
+            </tr>
+        
+            <tr>
+                <td>1046</td>
+                <td>R-7PL</td>
+                <td>0.127761</td>
+                <td>0.222403</td>
+                <td>1363.00</td>
+            </tr>
+        
+            <tr>
+                <td>40</td>
+                <td>L-24dd</td>
+                <td>0.121728</td>
+                <td>0.291334</td>
+                <td>2665.00</td>
+            </tr>
+        
+        </table>
+        
+        <h2>Visualizations</h2>
+        <h3>Top Regions by Mean Field Value</h3>
+        <img src="top_regions_bar.png" alt="Bar Chart of Top Regions">
+        
+        <h3>Field Distribution and Top Regions</h3>
+        <img src="field_and_regions_slices.png" alt="Field and Region Slices">
+        
+        <h3>Field Value Distribution in Top Regions</h3>
+        <img src="region_histograms.png" alt="Field Value Histograms">
+        
+    </div>
+
+        <div class="papaya-section">
+            <h2>Interactive 3D Visualization</h2>
+            <p>View the TI field data in an interactive 3D viewer:</p>
+            <div style="width: 100%; height: 600px; border: 1px solid #ddd; margin: 20px 0;">
+                <iframe src="index.html" width="100%" height="100%" frameborder="0"></iframe>
+            </div>
+            <p><a href="index.html" target="_blank" style="display: inline-block; padding: 8px 15px; background-color: #4285f4; color: white; text-decoration: none; border-radius: 4px;">Open in New Tab</a></p>
+        </div>
+        </body>
+</html>
