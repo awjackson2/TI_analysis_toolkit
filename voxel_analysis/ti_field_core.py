@@ -198,67 +198,116 @@ class TIFieldAnalyzer:
         # If we get here, none of the delimiter options worked for this line
         # Just ignore this line and continue
     
-    def analyze_by_region(self):
-        """Calculate statistics for each atlas region."""
-        # Find unique regions in atlas
-        unique_regions = np.unique(self.atlas_data)
-        # Remove 0 (typically background)
-        unique_regions = unique_regions[unique_regions > 0]
+    def analyze_by_region(self, min_threshold=0.0):
+        """
+        Calculate statistics for each atlas region, only considering voxels
+        with values greater than the specified threshold.
+        """
+        print(f"Analyzing field values by region (threshold > {min_threshold})...")
         
-        print(f"Found {len(unique_regions)} unique regions in the atlas")
+        # Create a directory for the voxel value data
+        voxel_data_dir = os.path.join(self.output_dir, 'voxel_values')
+        os.makedirs(voxel_data_dir, exist_ok=True)
+        
+        # Get unique region IDs
+        unique_regions = np.unique(self.aligned_atlas)
+        unique_regions = unique_regions[unique_regions > 0]  # Exclude background (0)
         
         results = []
         
-        # Process each region
-        for i, region_id in enumerate(unique_regions):
-            region_id = int(region_id)
-            print(f"Processing region {i+1}/{len(unique_regions)}: ID={region_id}", end="\r")
-            
+        for region_id in unique_regions:
             # Create mask for this region
-            mask = (self.atlas_data == region_id)
+            region_mask = (self.aligned_atlas == region_id)
             
-            # Extract field values within the mask
-            field_values = self.field_data[mask]
+            # Create additional mask for values > threshold
+            value_mask = (self.field_data > min_threshold)
             
-            if len(field_values) > 0:
-                # Calculate statistics
-                mean_value = np.mean(field_values)
-                max_value = np.max(field_values)
-                min_value = np.min(field_values)
-                std_value = np.std(field_values)
-                median_value = np.median(field_values)
-                voxel_count = len(field_values)
-                volume_mm3 = voxel_count * np.prod(self.field_img.header.get_zooms()[:3])
+            # Combine masks - only voxels that are both in the region AND above threshold
+            combined_mask = region_mask & value_mask
+            
+            # Skip regions with no voxels above threshold
+            if not np.any(combined_mask):
+                print(f"Region {region_id} has no voxels above threshold {min_threshold}, skipping")
+                continue
                 
-                # Get region info
-                if region_id in self.region_info:
-                    region_name = self.region_info[region_id]['name']
-                    region_color = self.region_info[region_id]['color']
-                else:
-                    region_name = f"Unknown_{region_id}"
-                    region_color = (0.5, 0.5, 0.5)
-                
-                # Add to results
-                results.append({
-                    'RegionID': region_id,
-                    'RegionName': region_name,
-                    'MeanValue': mean_value,
-                    'MaxValue': max_value,
-                    'MinValue': min_value,
-                    'MedianValue': median_value,
-                    'StdValue': std_value,
-                    'VoxelCount': voxel_count,
-                    'Volume_mm3': volume_mm3,
-                    'Color': region_color
-                })
-        
-        print("\nAnalysis complete.")
+            # Get values for this region (above threshold only)
+            region_values = self.field_data[combined_mask]
+            
+            # Get all values in the region (regardless of threshold) for comparison
+            all_region_values = self.field_data[region_mask]
+            
+            # Save all voxel values to a CSV file
+            region_name = f"Region_{region_id}"
+            if region_id in self.region_info:
+                region_name = self.region_info[region_id]['name'].replace(' ', '_')
+            
+            voxel_data_file = os.path.join(voxel_data_dir, f"{region_name}_voxel_values.csv")
+            
+            # Create a DataFrame with all voxel values and whether they passed the threshold
+            voxel_df = pd.DataFrame({
+                'VoxelValue': all_region_values,
+                'AboveThreshold': all_region_values > min_threshold
+            })
+            
+            # Save to CSV with 8 decimal places for precision
+            voxel_df.to_csv(voxel_data_file, index=False, float_format='%.8f')
+            
+            # Calculate voxel volume in mm^3
+            voxel_volume = np.abs(np.prod(self.field_img.header.get_zooms()))
+            volume_mm3 = len(region_values) * voxel_volume
+            
+            # Look up region name
+            region_name = f"Region {region_id}"
+            region_color = (0.5, 0.5, 0.5)  # Default gray
+            
+            if region_id in self.region_info:
+                region_name = self.region_info[region_id]['name']
+                region_color = self.region_info[region_id]['color']
+            
+            # Verify min value is above threshold
+            min_value = np.min(region_values)
+            
+            # Print min value in scientific notation to see exact value
+            print(f"Region {region_id} min value: {min_value:.10e}")
+            
+            # Store results with explicit verification
+            results.append({
+                'RegionID': region_id,
+                'RegionName': region_name,
+                'MeanValue': np.mean(region_values),
+                'MaxValue': np.max(region_values),
+                'MinValue': min_value,  # Should be > threshold
+                'MedianValue': np.median(region_values),
+                'StdValue': np.std(region_values),
+                'VoxelCount': len(region_values),
+                'Volume_mm3': volume_mm3,
+                'TotalVoxelsInRegion': len(all_region_values),
+                'VoxelsAboveThreshold': len(region_values),
+                'Color': region_color
+            })
+            
+            print(f"Region {region_id} ({region_name}): "
+                f"Mean = {np.mean(region_values):.6f}, "
+                f"Min = {min_value:.6f}, "
+                f"Max = {np.max(region_values):.6f}, "
+                f"Count = {len(region_values)}/{len(all_region_values)}")
         
         # Convert to DataFrame
-        self.results_df = pd.DataFrame(results)
-        self.results_df.sort_values('MeanValue', ascending=False, inplace=True)
+        results_df = pd.DataFrame(results)
         
-        return self.results_df
+        # Sort by mean value in descending order
+        results_df = results_df.sort_values(by='MeanValue', ascending=False)
+        
+        # Also create a summary CSV of min values for each region
+        min_value_summary = pd.DataFrame({
+            'RegionName': results_df['RegionName'],
+            'MinValue': results_df['MinValue'].apply(lambda x: f"{x:.10e}"),
+            'Threshold': min_threshold
+        })
+        min_value_summary.to_csv(os.path.join(self.output_dir, 'min_values_detail.csv'), index=False)
+        
+        self.results_df = results_df
+        return results_df
     
     def save_results(self):
         """Save results to CSV file."""

@@ -4,6 +4,8 @@
 Script for cortical region analysis of TI fields.
 This script analyzes TI field data within specific cortical regions defined in the HCP atlas.
 It can be used to compare field statistics across different cortical regions.
+
+Now includes voxel-level distribution visualization and threshold filtering.
 """
 
 import os
@@ -15,6 +17,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import nibabel as nib
 from ti_field_core import TIFieldAnalyzer
+
+# Try to import the RegionVoxelPlotter from the added module
+try:
+    from region_voxel_plot import RegionVoxelPlotter
+    HAS_VOXEL_PLOTTER = True
+except ImportError:
+    print("Warning: RegionVoxelPlotter module not found. Voxel distribution plotting will be disabled.")
+    HAS_VOXEL_PLOTTER = False
 
 def load_hcp_labels(hcp_labels_file):
     """Load HCP region labels from the specified file.
@@ -146,8 +156,8 @@ def find_region_ids(region_inputs, region_info):
     
     return selected_regions
 
-def analyze_cortical_region(analyzer, region_id, region_name):
-    """Analyze a specific cortical region.
+def analyze_cortical_region(analyzer, region_id, region_name, threshold=0.2613):
+    """Analyze a specific cortical region with threshold filtering.
     
     Parameters
     ----------
@@ -157,6 +167,8 @@ def analyze_cortical_region(analyzer, region_id, region_name):
         ID of the region to analyze
     region_name : str
         Name of the region
+    threshold : float, optional
+        Minimum field value threshold (default: 0.0)
         
     Returns
     -------
@@ -164,10 +176,10 @@ def analyze_cortical_region(analyzer, region_id, region_name):
         Dictionary with region statistics
     """
     # Create mask for this region
-    mask = (analyzer.atlas_data == region_id)
+    region_mask = (analyzer.atlas_data == region_id)
     
     # Check if the mask contains any voxels
-    mask_count = np.sum(mask)
+    mask_count = np.sum(region_mask)
     if mask_count == 0:
         print(f"Warning: Region {region_name} (ID: {region_id}) contains 0 voxels in the atlas")
         # Return zeros for all metrics
@@ -185,25 +197,74 @@ def analyze_cortical_region(analyzer, region_id, region_name):
         }
         return results
     
-    # Extract field values within the mask
-    field_values = analyzer.field_data[mask]
+    # Apply threshold filter
+    value_mask = (analyzer.field_data > threshold)
+    
+    # Combine masks - only voxels that are both in the region AND above threshold
+    combined_mask = region_mask & value_mask
+    
+    # Check if any voxels remain after threshold filtering
+    threshold_count = np.sum(combined_mask)
+    if threshold_count == 0:
+        print(f"Warning: Region {region_name} (ID: {region_id}) has no voxels above threshold {threshold}")
+        # Return zeros with error note
+        results = {
+            'RegionID': region_id,
+            'RegionName': region_name,
+            'MeanValue': 0,
+            'MaxValue': 0,
+            'MinValue': 0,
+            'MedianValue': 0, 
+            'StdValue': 0,
+            'VoxelCount': 0,
+            'Volume_mm3': 0,
+            'Error': f'No voxels above threshold {threshold}'
+        }
+        return results
+    
+    # Extract all field values within region mask (for comparison)
+    all_field_values = analyzer.field_data[region_mask]
+    
+    # Extract field values after threshold filtering
+    field_values = analyzer.field_data[combined_mask]
+    
+    # Double-check minimum value
+    min_value = np.min(field_values)
+    if min_value <= threshold:
+        print(f"Warning: Found min value {min_value:.8e} <= threshold {threshold} in region {region_name}")
     
     # Debug information
-    print(f"Mask for {region_name} contains {mask_count} voxels")
-    print(f"Field values range: {np.min(field_values)} to {np.max(field_values)}")
+    print(f"Region {region_name} (ID: {region_id}): {threshold_count}/{mask_count} voxels above threshold {threshold}")
+    print(f"Field values range: {min_value:.8e} to {np.max(field_values):.8e}")
+    
+    # Calculate voxel volume
+    voxel_sizes = analyzer.field_img.header.get_zooms()[:3]
+    voxel_volume = np.prod(voxel_sizes)
     
     # Calculate statistics
-    voxel_sizes = analyzer.field_img.header.get_zooms()[:3]
+    mean_value = np.mean(field_values)
+    max_value = np.max(field_values)
+    median_value = np.median(field_values)
+    std_value = np.std(field_values)
+    volume_mm3 = threshold_count * voxel_volume
     
-    mean_value = np.mean(field_values) if len(field_values) > 0 else 0
-    max_value = np.max(field_values) if len(field_values) > 0 else 0
-    min_value = np.min(field_values) if len(field_values) > 0 else 0
-    median_value = np.median(field_values) if len(field_values) > 0 else 0
-    std_value = np.std(field_values) if len(field_values) > 0 else 0
-    voxel_count = len(field_values)
-    volume_mm3 = voxel_count * np.prod(voxel_sizes)
+    # Save detailed voxel value information for debugging
+    debug_dir = os.path.join(analyzer.output_dir, 'voxel_debug')
+    os.makedirs(debug_dir, exist_ok=True)
     
-    # Return statistics as dictionary
+    # Save detailed voxel values to CSV for inspection
+    safe_name = region_name.replace(" ", "_").replace("/", "_")
+    voxel_csv_path = os.path.join(debug_dir, f'voxel_values_{region_id}_{safe_name}.csv')
+    
+    # Create a DataFrame with all voxel values in this region
+    voxel_df = pd.DataFrame({
+        'Value': all_field_values,
+        'AboveThreshold': all_field_values > threshold
+    })
+    voxel_df.to_csv(voxel_csv_path, index=False, float_format='%.10e')
+    print(f"Saved voxel values to {voxel_csv_path}")
+    
+    # Return statistics as dictionary with additional info
     results = {
         'RegionID': region_id,
         'RegionName': region_name,
@@ -212,17 +273,246 @@ def analyze_cortical_region(analyzer, region_id, region_name):
         'MinValue': min_value,
         'MedianValue': median_value, 
         'StdValue': std_value,
-        'VoxelCount': voxel_count,
-        'Volume_mm3': volume_mm3
+        'VoxelCount': threshold_count,
+        'TotalVoxelsInRegion': mask_count,
+        'VoxelsAboveThreshold': threshold_count,
+        'PercentAboveThreshold': (threshold_count / mask_count * 100) if mask_count > 0 else 0,
+        'Volume_mm3': volume_mm3,
+        'Threshold': threshold
     }
     
     # Save region mask for visualization
-    mask_img = nib.Nifti1Image(mask.astype(np.int16), analyzer.field_img.affine)
-    mask_path = os.path.join(analyzer.output_dir, f'region_mask_{region_id}_{region_name.replace(" ", "_")}.nii.gz')
+    mask_img = nib.Nifti1Image(combined_mask.astype(np.int16), analyzer.field_img.affine)
+    mask_path = os.path.join(analyzer.output_dir, f'region_mask_{region_id}_{safe_name}.nii.gz')
     nib.save(mask_img, mask_path)
-    print(f"Saved region mask to {mask_path}")
+    print(f"Saved thresholded region mask to {mask_path}")
     
     return results
+
+def create_voxel_distributions(field_file, atlas_file, labels_file, output_dir, region_ids, 
+                              plot_types=None, max_n_regions=5, threshold=None):
+    """Create voxel-level distribution plots for the specified regions.
+    
+    Parameters
+    ----------
+    field_file : str
+        Path to field NIfTI file
+    atlas_file : str
+        Path to atlas NIfTI file
+    labels_file : str
+        Path to labels file
+    output_dir : str
+        Path to output directory
+    region_ids : list
+        List of region IDs to plot
+    plot_types : list, optional
+        List of plot types to create ('violin', 'scatter', 'box')
+    max_n_regions : int, optional
+        Maximum number of regions to include in plots
+    threshold : float, optional
+        Minimum field value threshold for voxel plotting
+        
+    Returns
+    -------
+    list
+        List of paths to created plots
+    """
+    if not HAS_VOXEL_PLOTTER:
+        print("WARNING: RegionVoxelPlotter module not found. Skipping voxel distribution plots.")
+        return []
+        
+    # Limit to maximum number of regions
+    if len(region_ids) > max_n_regions:
+        print(f"Too many regions ({len(region_ids)}) for voxel distribution visualization.")
+        print(f"Limiting to {max_n_regions} regions with highest region IDs.")
+        # Sort by region ID and take the last max_n_regions
+        region_ids = sorted(region_ids)[-max_n_regions:]
+    
+    # Default plot types if not specified
+    if plot_types is None:
+        plot_types = ['violin', 'box', 'scatter']
+        
+    # Create voxel distribution plots subdirectory
+    voxel_plots_dir = os.path.join(output_dir, 'voxel_distributions')
+    os.makedirs(voxel_plots_dir, exist_ok=True)
+    
+    plot_outputs = []
+    
+    try:
+        print("\nGenerating voxel-level distribution plots...")
+        
+        # Initialize the voxel plotter
+        plotter = RegionVoxelPlotter(
+            field_file=field_file,
+            atlas_file=atlas_file,
+            labels_file=labels_file,
+            output_dir=voxel_plots_dir
+        )
+        
+        # Apply threshold filter if provided
+        if threshold is not None and threshold != 0:
+            # Create a thresholded field copy for plotting
+            print(f"Applying threshold {threshold} to field data for voxel distribution plots")
+            
+            # Load the original field
+            field_img = nib.load(field_file)
+            field_data = field_img.get_fdata()
+            
+            # Apply threshold
+            field_data_thresholded = np.copy(field_data)
+            field_data_thresholded[field_data_thresholded <= threshold] = 0
+            
+            # Save thresholded field to temporary file
+            thresholded_field_file = os.path.join(voxel_plots_dir, 'temp_thresholded_field.nii.gz')
+            thresholded_img = nib.Nifti1Image(field_data_thresholded, field_img.affine)
+            nib.save(thresholded_img, thresholded_field_file)
+            
+            # Use thresholded field for plotting
+            plotter = RegionVoxelPlotter(
+                field_file=thresholded_field_file,
+                atlas_file=atlas_file,
+                labels_file=labels_file,
+                output_dir=voxel_plots_dir
+            )
+            
+        # Generate each plot type
+        for plot_type in plot_types:
+            print(f"Creating {plot_type} plot for regions: {region_ids}")
+            
+            try:
+                fig = plotter.plot_region_voxels(
+                    region_ids=region_ids,
+                    plot_type=plot_type,
+                    save=True,
+                    show=False
+                )
+                
+                # Add threshold info to plot filename if applicable
+                threshold_str = f"_thresh{threshold}" if threshold is not None and threshold != 0 else ""
+                plot_filename = f'{plot_type}_plot_regions_{"-".join(str(r) for r in region_ids)}{threshold_str}.png'
+                plot_path = os.path.join(voxel_plots_dir, plot_filename)
+                
+                # Add plot info to outputs
+                plot_outputs.append({
+                    'type': plot_type,
+                    'path': plot_path,
+                    'threshold': threshold
+                })
+                
+            except Exception as e:
+                print(f"Warning: Could not create {plot_type} plot: {str(e)}")
+                import traceback
+                traceback.print_exc()
+        
+        # Export voxel values to CSV for further analysis
+        try:
+            plotter.export_region_values_to_csv(region_ids)
+            print(f"Exported voxel values to CSV files in {voxel_plots_dir}")
+        except Exception as e:
+            print(f"Warning: Could not export voxel values to CSV: {str(e)}")
+        
+        # Clean up temporary file if created
+        if threshold is not None and threshold != 0:
+            if os.path.exists(thresholded_field_file):
+                os.remove(thresholded_field_file)
+                print(f"Removed temporary thresholded field file")
+        
+        return plot_outputs
+        
+    except Exception as e:
+        print(f"Warning: Could not create voxel distribution plots: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return []
+
+def update_html_report(report_path, voxel_plots_info, threshold=None):
+    """Add voxel distribution plots to HTML report.
+    
+    Parameters
+    ----------
+    report_path : str
+        Path to HTML report
+    voxel_plots_info : list
+        List of dictionaries with plot information
+    threshold : float, optional
+        Threshold value used for analysis
+        
+    Returns
+    -------
+    bool
+        True if successful, False otherwise
+    """
+    if not voxel_plots_info:
+        return False
+    
+    try:
+        # Read existing HTML
+        with open(report_path, 'r') as f:
+            html_content = f.read()
+        
+        # Create voxel distributions section
+        threshold_info = f" (with threshold {threshold})" if threshold is not None and threshold != 0 else ""
+        voxel_section = f"""
+        <div class="voxel-distributions">
+            <h2>Voxel-Level Distribution Analysis{threshold_info}</h2>
+            <p>The following plots show the distribution of individual voxel values within each region:</p>
+        """
+        
+        # Group plots by type
+        plot_types = set(plot['type'] for plot in voxel_plots_info)
+        
+        for plot_type in plot_types:
+            plots = [plot for plot in voxel_plots_info if plot['type'] == plot_type]
+            
+            if plots:
+                # Use relative path from report dir to plot
+                report_dir = os.path.dirname(report_path)
+                rel_path = os.path.relpath(plots[0]['path'], report_dir)
+                
+                # Add description based on plot type
+                if plot_type == 'violin':
+                    voxel_section += f"""
+                    <h3>Violin Plot</h3>
+                    <p>Violin plots show the full distribution shape of voxel values within each region, 
+                    making it easy to compare distributions across regions.</p>
+                    <img src="{rel_path}" alt="Violin plot of voxel distributions">
+                    """
+                elif plot_type == 'box':
+                    voxel_section += f"""
+                    <h3>Box Plot</h3>
+                    <p>Box plots show the quartiles and outliers of voxel distributions, 
+                    offering a statistical summary of each region.</p>
+                    <img src="{rel_path}" alt="Box plot of voxel distributions">
+                    """
+                elif plot_type == 'scatter':
+                    voxel_section += f"""
+                    <h3>Scatter Plot</h3>
+                    <p>Scatter plots show the full distribution of voxel values, 
+                    with density coloring to highlight clusters.</p>
+                    <img src="{rel_path}" alt="Scatter plot of voxel distributions">
+                    """
+        
+        voxel_section += """
+        </div>
+        """
+        
+        # Insert before the closing body tag
+        if '</body>' in html_content:
+            new_html = html_content.replace('</body>', f'{voxel_section}</body>')
+            
+            # Write updated HTML
+            with open(report_path, 'w') as f:
+                f.write(new_html)
+                
+            print(f"Updated HTML report with voxel distribution plots")
+            return True
+        else:
+            print(f"Warning: Could not find closing body tag in HTML report")
+            return False
+        
+    except Exception as e:
+        print(f"Warning: Could not update HTML report: {str(e)}")
+        return False
 
 def main():
     parser = argparse.ArgumentParser(description='Analyze TI field in specific cortical regions')
@@ -236,6 +526,13 @@ def main():
                       help='Compare multiple regions and calculate differential values')
     parser.add_argument('--t1-mni', help='Optional T1 MNI reference image for visualization')
     parser.add_argument('--no-visualizations', action='store_true', help='Skip generating visualizations')
+    parser.add_argument('--threshold', type=float, default=0.0,
+                      help='Minimum field value threshold (default: 0.0)')
+    parser.add_argument('--voxel-plots', action='store_true', 
+                      help='Generate voxel-level distribution plots (default: True)')
+    parser.add_argument('--voxel-plot-types', nargs='+', choices=['violin', 'scatter', 'box'],
+                      default=['violin', 'box'],
+                      help='Types of voxel plots to generate')
     
     args = parser.parse_args()
     
@@ -282,8 +579,8 @@ def main():
         for region_id, region_name in selected_regions.items():
             print(f"Analyzing region: {region_name} (ID: {region_id})")
             
-            # Run the analysis
-            result = analyze_cortical_region(analyzer, region_id, region_name)
+            # Run the analysis with threshold
+            result = analyze_cortical_region(analyzer, region_id, region_name, args.threshold)
             region_results.append(result)
         
         # Create a DataFrame with the results
@@ -401,8 +698,9 @@ def main():
                         ha='center', va='bottom', rotation=0
                     )
                 
+                threshold_str = f" (Threshold: {args.threshold})" if args.threshold != 0 else ""
                 plt.ylabel('Mean Field Value')
-                plt.title('Mean Field Values in Cortical Regions')
+                plt.title(f'Mean Field Values in Cortical Regions{threshold_str}')
                 plt.xticks(range(len(sorted_results)), 
                          [f"{r['RegionName']} (ID:{r['RegionID']})" for r in sorted_results], 
                          rotation=45, ha='right')
@@ -424,8 +722,14 @@ def main():
                 for r in sorted_results:
                     region_id = r['RegionID']
                     region_name = r['RegionName']
-                    mask = (analyzer.atlas_data == region_id)
-                    values = analyzer.field_data[mask]
+                    
+                    # Create mask with threshold applied
+                    region_mask = (analyzer.atlas_data == region_id)
+                    value_mask = (analyzer.field_data > args.threshold)
+                    combined_mask = region_mask & value_mask
+                    
+                    # Extract values using the mask
+                    values = analyzer.field_data[combined_mask]
                     
                     if len(values) > 0:
                         distributions.append(values)
@@ -434,7 +738,8 @@ def main():
                 if distributions:
                     plt.boxplot(distributions, labels=labels)
                     plt.ylabel('Field Value')
-                    plt.title('Field Value Distribution in Cortical Regions')
+                    threshold_str = f" (Threshold: {args.threshold})" if args.threshold != 0 else ""
+                    plt.title(f'Field Value Distribution in Cortical Regions{threshold_str}')
                     plt.xticks(rotation=45, ha='right')
                     plt.tight_layout()
                     plt.subplots_adjust(bottom=0.3)  # Make more room for labels
@@ -446,6 +751,132 @@ def main():
                 
             except Exception as e:
                 print(f"Warning: Could not create mean values plot: {str(e)}")
+
+        # Generate voxel-level distribution plots if requested
+        voxel_plots_info = None
+        if not args.no_visualizations and (args.voxel_plots or HAS_VOXEL_PLOTTER):
+            region_ids = [r['RegionID'] for r in region_results]
+            voxel_plots_info = create_voxel_distributions(
+                field_file=args.field,
+                atlas_file=args.atlas,
+                labels_file=args.labels,
+                output_dir=output_dir,
+                region_ids=region_ids,
+                plot_types=args.voxel_plot_types,
+                threshold=args.threshold
+            )
+            
+            # Create simple HTML report
+            html_path = os.path.join(output_dir, 'analysis_report.html')
+            if os.path.exists(html_path):
+                # Update existing report with voxel plots
+                update_html_report(html_path, voxel_plots_info, args.threshold)
+            else:
+                # Create basic HTML report
+                try:
+                    print("\nGenerating HTML report...")
+                    
+                    threshold_str = f" (Threshold: {args.threshold})" if args.threshold != 0 else ""
+                    html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>Cortical Region Analysis Report</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        h1, h2, h3 {{ color: #2c3e50; }}
+        table {{ border-collapse: collapse; width: 100%; margin-bottom: 20px; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+        th {{ background-color: #f2f2f2; }}
+        tr:nth-child(even) {{ background-color: #f9f9f9; }}
+        img {{ max-width: 100%; height: auto; margin: 20px 0; }}
+        .container {{ max-width: 1200px; margin: 0 auto; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cortical Region Analysis Report{threshold_str}</h1>
+        <p><strong>Field:</strong> {os.path.basename(args.field)}</p>
+        <p><strong>Atlas:</strong> {os.path.basename(args.atlas)}</p>
+        <p><strong>Analysis Date:</strong> {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}</p>
+        
+        <h2>Region Statistics</h2>
+        <table>
+            <tr>
+                <th>Region Name</th>
+                <th>Region ID</th>
+                <th>Mean Value</th>
+                <th>Max Value</th>
+                <th>Median Value</th>
+                <th>Std Value</th>
+                <th>Voxels > Threshold</th>
+                <th>Total Voxels</th>
+                <th>% Above Threshold</th>
+                <th>Volume (mm³)</th>
+            </tr>
+    """
+                    
+                    # Add rows for each region
+                    for r in region_results:
+                        percent_above = r.get('PercentAboveThreshold', 0)
+                        html_content += f"""
+            <tr>
+                <td>{r['RegionName']}</td>
+                <td>{r['RegionID']}</td>
+                <td>{r['MeanValue']:.6f}</td>
+                <td>{r['MaxValue']:.6f}</td>
+                <td>{r.get('MedianValue', 0):.6f}</td>
+                <td>{r.get('StdValue', 0):.6f}</td>
+                <td>{r.get('VoxelsAboveThreshold', 0)}</td>
+                <td>{r.get('TotalVoxelsInRegion', 0)}</td>
+                <td>{percent_above:.2f}%</td>
+                <td>{r['Volume_mm3']:.2f}</td>
+            </tr>
+                        """
+                    
+                    html_content += """
+        </table>
+        
+        <h2>Visualizations</h2>
+    """
+                    
+                    # Add standard visualizations
+                    if os.path.exists(os.path.join(output_dir, 'mean_values.png')):
+                        html_content += f"""
+        <h3>Mean Field Values</h3>
+        <img src="mean_values.png" alt="Mean Field Values">
+                        """
+                        
+                    if os.path.exists(os.path.join(output_dir, 'value_distributions.png')):
+                        html_content += f"""
+        <h3>Field Value Distribution</h3>
+        <img src="value_distributions.png" alt="Field Value Distribution">
+                        """
+                        
+                    if args.compare and os.path.exists(os.path.join(output_dir, 'differential_values.png')):
+                        html_content += f"""
+        <h3>Differential Values</h3>
+        <img src="differential_values.png" alt="Differential Values">
+                        """
+                    
+                    # Close HTML tags
+                    html_content += """
+    </div>
+</body>
+</html>
+                    """
+                    
+                    # Write HTML file
+                    with open(html_path, 'w') as f:
+                        f.write(html_content)
+                    
+                    print(f"HTML report saved to {html_path}")
+                    
+                    # Update report with voxel plots if available
+                    if voxel_plots_info:
+                        update_html_report(html_path, voxel_plots_info, args.threshold)
+                
+                except Exception as e:
+                    print(f"Warning: Could not create HTML report: {str(e)}")
         
         print(f"Analysis completed successfully!")
         

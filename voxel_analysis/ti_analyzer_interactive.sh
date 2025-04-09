@@ -439,7 +439,6 @@ run_sphere_analysis() {
     return
 }
 
-# Function for cortex analysis
 run_cortex_analysis() {
     show_header
     echo -e "${BLUE}Cortical Region Analysis${NC}"
@@ -527,6 +526,13 @@ run_cortex_analysis() {
         return
     fi
     
+    # NEW: Add threshold option
+    echo -e "${YELLOW}Enter threshold value (default: 0.0):${NC}"
+    read -r threshold
+    if [ -z "$threshold" ] || ! [[ "$threshold" =~ ^-?[0-9]+(\.[0-9]+)?$ ]]; then
+        threshold=0.0
+    fi
+    
     # Prompt for output directory
     echo -e "${YELLOW}Enter output directory name (default: cortex_analysis):${NC}"
     read -r output_name
@@ -561,6 +567,81 @@ run_cortex_analysis() {
         no_viz=true
     fi
     
+    # Add options for voxel-level distributions
+    voxel_plots=false
+    voxel_plot_types=""
+    
+    if [[ "$no_viz" == false ]]; then
+        echo -e "${YELLOW}Generate voxel-level distribution plots? (y/n, default: y):${NC}"
+        read -r gen_voxel_plots
+        if [ -z "$gen_voxel_plots" ] || [[ "$gen_voxel_plots" =~ ^[Yy]$ ]]; then
+            voxel_plots=true
+            
+            echo -e "${YELLOW}Select voxel plot types (space-separated):${NC}"
+            echo -e "${YELLOW}Available types: violin box scatter${NC}"
+            echo -e "${YELLOW}(default: violin box):${NC}"
+            read -r voxel_plot_types_input
+            
+            if [ -z "$voxel_plot_types_input" ]; then
+                voxel_plot_types="violin box"
+            else
+                voxel_plot_types="$voxel_plot_types_input"
+            fi
+        fi
+    fi
+    
+    # Build and run command
+    echo ""
+    echo -e "${BLUE}Running cortical region analysis...${NC}"
+    echo ""
+    
+    # Create output directory
+    mkdir -p "$output_dir"
+    
+    # Build command
+    cmd="python cortex_analysis.py --field \"$field_file\" --atlas \"$hcp_atlas\" --labels \"$hcp_labels\" --output \"$output_dir\" --regions $regions --threshold $threshold"
+    
+    if [ "$use_t1" = true ]; then
+        cmd="$cmd --t1-mni \"$t1_mni\""
+    fi
+    
+    if [ "$compare" = true ]; then
+        cmd="$cmd --compare"
+    fi
+    
+    if [ "$no_viz" = true ]; then
+        cmd="$cmd --no-visualizations"
+    fi
+    
+    # Add voxel plot options
+    if [ "$voxel_plots" = true ]; then
+        cmd="$cmd --voxel-plots"
+        
+        if [ -n "$voxel_plot_types" ]; then
+            cmd="$cmd --voxel-plot-types $voxel_plot_types"
+        fi
+    fi
+    
+    echo "Command: $cmd"
+    
+    # Run the command and capture both stdout and stderr
+    output=$(eval $cmd 2>&1)
+    exit_code=$?
+    
+    echo "$output"
+    
+    if [ $exit_code -ne 0 ]; then
+        echo ""
+        echo -e "${RED}Error: Analysis failed with exit code $exit_code${NC}"
+    else
+        echo ""
+        echo -e "${GREEN}Analysis complete. Results saved to: $output_dir${NC}"
+    fi
+    
+    echo ""
+    read -n 1 -s -r -p "Press any key to return to main menu..."
+    return
+    
     # Build and run command
     echo ""
     echo -e "${BLUE}Running cortical region analysis...${NC}"
@@ -582,6 +663,15 @@ run_cortex_analysis() {
     
     if [ "$no_viz" = true ]; then
         cmd="$cmd --no-visualizations"
+    fi
+    
+    # Add voxel plot options
+    if [ "$voxel_plots" = true ]; then
+        cmd="$cmd --voxel-plots"
+        
+        if [ -n "$voxel_plot_types" ]; then
+            cmd="$cmd --voxel-plot-types $voxel_plot_types"
+        fi
     fi
     
     echo "Command: $cmd"
