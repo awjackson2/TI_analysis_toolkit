@@ -2,6 +2,11 @@
 
 A comprehensive Python toolkit for advanced analysis of Temporal Interference (TI) electric fields in neuroimaging, providing robust capabilities for quantitative assessment across voxel and mesh spaces.
 
+![Screenshot from 2025-05-01 15-07-13](https://github.com/user-attachments/assets/571f0299-23f0-4390-9423-90dfaa1b4ea2)
+![scatterplot](https://github.com/user-attachments/assets/ae260338-f769-4c17-9f84-96a5c8f93487)
+![meshholo](https://github.com/user-attachments/assets/0331d77c-754a-4ff7-b225-f28c97eb5290)
+![Screenshot from 2025-05-01 15-08-07](https://github.com/user-attachments/assets/a173c67d-3f72-4ae6-969c-018a7d033bdc)
+
 ## Key Features
 
 - 🧠 **Multi-Modal Analysis**
@@ -141,6 +146,4 @@ results_df = analyzer.analyze_by_region()
 visu.create_bar_chart(analyzer)
 visu.generate_report(analyzer)
 ```
-![Screenshot from 2025-05-01 15-07-13](https://github.com/user-attachments/assets/571f0299-23f0-4390-9423-90dfaa1b4ea2)
-![scatterplot](https://github.com/user-attachments/assets/ae260338-f769-4c17-9f84-96a5c8f93487)
-![meshholo](https://github.com/user-attachments/assets/0331d77c-754a-4ff7-b225-f28c97eb5290)
+
